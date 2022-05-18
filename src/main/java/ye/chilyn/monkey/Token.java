@@ -24,4 +24,12 @@ public class Token {
     public void setLiteral(String literal) {
         this.literal = literal;
     }
+
+    @Override
+    public String toString() {
+        return "Token{" +
+                "type='" + type + '\'' +
+                ", literal='" + literal + '\'' +
+                '}';
+    }
 }

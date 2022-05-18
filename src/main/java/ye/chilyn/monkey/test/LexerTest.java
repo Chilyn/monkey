@@ -1,5 +1,8 @@
 package ye.chilyn.monkey.test;
 
+import static ye.chilyn.monkey.Printer.print;
+import static ye.chilyn.monkey.Printer.println;
+
 import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Token;
 import ye.chilyn.monkey.TokenType;
@@ -111,13 +114,5 @@ public class LexerTest {
 
     private boolean isTokenEquals(Token t1, Token t2) {
         return t1.getType().equals(t2.getType()) && t1.getLiteral().equals(t2.getLiteral());
-    }
-
-    private void print(String msg) {
-        System.out.print(msg);
-    }
-
-    private void println(String msg) {
-        System.out.println(msg);
     }
 }
