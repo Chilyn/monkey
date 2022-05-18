@@ -1,7 +1,10 @@
 package ye.chilyn.monkey;
 
+import ye.chilyn.monkey.test.LexerTest;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        LexerTest lexerTest = new LexerTest();
+        lexerTest.testNextToken();
     }
 }
