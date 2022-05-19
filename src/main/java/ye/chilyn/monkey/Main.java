@@ -6,12 +6,15 @@ import static ye.chilyn.monkey.Printer.println;
 import java.util.Scanner;
 
 import ye.chilyn.monkey.test.LexerTest;
+import ye.chilyn.monkey.test.ParserTest;
 
 public class Main {
     public static void main(String[] args) {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
-        startREPL();
+//        startREPL();
+        ParserTest parserTest = new ParserTest();
+        parserTest.testLetStatements();
     }
 
     public static void startREPL() {

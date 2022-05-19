@@ -4,8 +4,12 @@ import ye.chilyn.monkey.Token;
 
 public class LetStatement implements Statement {
     private Token token;
-    private Identifier name;
+    public Identifier name;
     private Expression value;
+
+    public LetStatement(Token token) {
+        this.token = token;
+    }
 
     @Override
     public void statementNode() {
