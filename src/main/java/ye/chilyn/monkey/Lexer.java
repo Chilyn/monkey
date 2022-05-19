@@ -183,6 +183,10 @@ public class Lexer {
     }
 
     private boolean isLetter(String ch) {
+        if (ch == null || ch.length() == 0) {
+            return false;
+        }
+
         return ('a' <= ch.charAt(0) && ch.charAt(0) <= 'z') ||
                 ('A' <= ch.charAt(0) && ch.charAt(0) <= 'Z') ||
                 "_".equals(ch);
