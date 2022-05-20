@@ -14,7 +14,7 @@ public class Main {
 //        lexerTest.testNextToken();
 //        startREPL();
         ParserTest parserTest = new ParserTest();
-        parserTest.testLetStatements();
+        parserTest.testReturnStatements();
     }
 
     public static void startREPL() {

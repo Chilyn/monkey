@@ -9,6 +9,7 @@ import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Parser;
 import ye.chilyn.monkey.ast.LetStatement;
 import ye.chilyn.monkey.ast.Program;
+import ye.chilyn.monkey.ast.ReturnStatement;
 import ye.chilyn.monkey.ast.Statement;
 
 public class ParserTest {
@@ -79,5 +80,31 @@ public class ParserTest {
         }
 
         return true;
+    }
+
+    public void testReturnStatements() {
+        String input = "return 5;return 10;return 993322;";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        int len = program.statements.size();
+        if (len != 3) {
+            println("program.statements does not contain 3 statements. got=" + len);
+            return;
+        }
+
+        for (Statement statement : program.statements) {
+            if (!(statement instanceof ReturnStatement)) {
+                println("statement not ReturnStatement. got=" + statement.getClass().getName());
+                continue;
+            }
+
+            ReturnStatement returnStmt = (ReturnStatement) statement;
+            if (!"return".equals(returnStmt.tokenLiteral())) {
+                println("returnStmt.tokenLiteral not 'return'. got=" + returnStmt.tokenLiteral());
+            }
+        }
+        println("success");
     }
 }

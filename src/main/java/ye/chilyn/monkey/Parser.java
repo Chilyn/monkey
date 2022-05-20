@@ -6,6 +6,7 @@ import java.util.List;
 import ye.chilyn.monkey.ast.Identifier;
 import ye.chilyn.monkey.ast.LetStatement;
 import ye.chilyn.monkey.ast.Program;
+import ye.chilyn.monkey.ast.ReturnStatement;
 import ye.chilyn.monkey.ast.Statement;
 
 public class Parser {
@@ -42,12 +43,14 @@ public class Parser {
         switch (curToken.getType()) {
             case TokenType.LET:
                 return parseLetStatement();
+            case TokenType.RETURN:
+                return parseReturnStatement();
             default:
                 return null;
         }
     }
 
-    private Statement parseLetStatement() {
+    private LetStatement parseLetStatement() {
         LetStatement statement = new LetStatement(curToken);
         if (!expectPeek(TokenType.IDENT)) {
             return null;
@@ -57,6 +60,16 @@ public class Parser {
         if (!expectPeek(TokenType.ASSIGN)) {
             return null;
         }
+
+        while (!curTokenIs(TokenType.SEMICOLON)) {
+            nextToken();
+        }
+        return statement;
+    }
+
+    private Statement parseReturnStatement() {
+        ReturnStatement statement = new ReturnStatement(curToken);
+        nextToken();
 
         while (!curTokenIs(TokenType.SEMICOLON)) {
             nextToken();

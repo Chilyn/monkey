@@ -6,6 +6,10 @@ public class ReturnStatement implements Statement {
     private Token token;
     private Expression returnValue;
 
+    public ReturnStatement(Token token) {
+        this.token = token;
+    }
+
     @Override
     public void statementNode() {
 
