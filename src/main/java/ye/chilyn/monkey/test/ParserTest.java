@@ -1,5 +1,7 @@
 package ye.chilyn.monkey.test;
 
+import java.util.List;
+
 import static ye.chilyn.monkey.Printer.print;
 import static ye.chilyn.monkey.Printer.println;
 
@@ -12,12 +14,13 @@ import ye.chilyn.monkey.ast.Statement;
 public class ParserTest {
 
     public void testLetStatements() {
-        String input = "let x = 5;" +
+        String input = "let x  5;" +
                 "let y = 10;" +
                 "let foobar = 838383;";
         Lexer lexer = new Lexer(input);
         Parser parser = new Parser(lexer);
         Program program = parser.parseProgram();
+        checkParserErrors(parser);
         if (program == null) {
             println("parseProgram() returned null");
             return;
@@ -37,6 +40,20 @@ public class ParserTest {
             }
         }
         println("success");
+    }
+
+    private void checkParserErrors(Parser parser) {
+        List<String> errors = parser.errors();
+        if (errors.size() == 0) {
+            return;
+        }
+
+        println("parser has " + errors.size() + " errors");
+        for (String error : errors) {
+            println(error);
+        }
+
+        System.exit(0);
     }
 
     public boolean testLetStatement(Statement s, String name) {

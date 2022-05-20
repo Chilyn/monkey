@@ -1,5 +1,8 @@
 package ye.chilyn.monkey;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import ye.chilyn.monkey.ast.Identifier;
 import ye.chilyn.monkey.ast.LetStatement;
 import ye.chilyn.monkey.ast.Program;
@@ -9,9 +12,11 @@ public class Parser {
     private Lexer lexer;
     private Token curToken;
     private Token peekToken;
+    private List<String> errors;
 
     public Parser(Lexer lexer) {
         this.lexer = lexer;
+        this.errors = new ArrayList<>();
         nextToken();
         nextToken();
     }
@@ -72,7 +77,17 @@ public class Parser {
             nextToken();
             return true;
         } else {
+            peekError(tokenType);
             return false;
         }
+    }
+
+    public List<String> errors() {
+        return errors;
+    }
+
+    private void peekError(String tokenType) {
+        String msg = "expected next token to be " + tokenType + ", got " + peekToken.getType() + " instead";
+        errors.add(msg);
     }
 }
