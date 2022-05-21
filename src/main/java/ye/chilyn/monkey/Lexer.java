@@ -193,6 +193,10 @@ public class Lexer {
     }
 
     private boolean isDigit(String ch) {
+        if (ch == null || ch.length() == 0) {
+            return false;
+        }
+
         return '0' <= ch.charAt(0) && ch.charAt(0) <= '9';
     }
 }

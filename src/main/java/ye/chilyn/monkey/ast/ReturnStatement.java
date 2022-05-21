@@ -19,4 +19,15 @@ public class ReturnStatement implements Statement {
     public String tokenLiteral() {
         return token.getLiteral();
     }
+
+    @Override
+    public String string() {
+        String result = tokenLiteral() + " ";
+        if (returnValue != null) {
+            result += returnValue.string();
+        }
+
+        result += ";";
+        return result;
+    }
 }

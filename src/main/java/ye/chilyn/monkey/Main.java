@@ -5,6 +5,7 @@ import static ye.chilyn.monkey.Printer.println;
 
 import java.util.Scanner;
 
+import ye.chilyn.monkey.test.ASTTest;
 import ye.chilyn.monkey.test.LexerTest;
 import ye.chilyn.monkey.test.ParserTest;
 
@@ -12,9 +13,19 @@ public class Main {
     public static void main(String[] args) {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
+
 //        startREPL();
+
         ParserTest parserTest = new ParserTest();
-        parserTest.testReturnStatements();
+//        parserTest.testReturnStatements();
+//        parserTest.testIdentifierExpression();
+//        parserTest.testIntegerLiteralExpression();
+//        parserTest.testParsingPrefixExpressions();
+//        parserTest.testParsingInfixExpressions();
+        parserTest.testOperatorPrecedenceParsing();
+
+//        ASTTest test = new ASTTest();
+//        test.testString();
     }
 
     public static void startREPL() {

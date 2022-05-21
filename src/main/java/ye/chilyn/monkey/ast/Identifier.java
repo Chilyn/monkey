@@ -20,4 +20,9 @@ public class Identifier implements Expression {
     public String tokenLiteral() {
         return token.getLiteral();
     }
+
+    @Override
+    public String string() {
+        return value;
+    }
 }

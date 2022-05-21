@@ -11,6 +11,12 @@ public class LetStatement implements Statement {
         this.token = token;
     }
 
+    public LetStatement(Token token, Identifier name, Expression value) {
+        this.token = token;
+        this.name = name;
+        this.value = value;
+    }
+
     @Override
     public void statementNode() {
 
@@ -19,5 +25,16 @@ public class LetStatement implements Statement {
     @Override
     public String tokenLiteral() {
         return token.getLiteral();
+    }
+
+    @Override
+    public String string() {
+        String result = tokenLiteral() + " " + name.string() + " = ";
+        if (value != null) {
+            result += value.string();
+        }
+
+        result += ";";
+        return result;
     }
 }
