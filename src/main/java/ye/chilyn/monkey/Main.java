@@ -23,6 +23,7 @@ public class Main {
 //        parserTest.testParsingPrefixExpressions();
 //        parserTest.testParsingInfixExpressions();
         parserTest.testOperatorPrecedenceParsing();
+//        parserTest.testBooleanExpression();
 
 //        ASTTest test = new ASTTest();
 //        test.testString();

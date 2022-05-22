@@ -7,6 +7,7 @@ import static ye.chilyn.monkey.Printer.println;
 
 import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Parser;
+import ye.chilyn.monkey.ast.Boolean;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
 import ye.chilyn.monkey.ast.Identifier;
@@ -196,6 +197,8 @@ public class ParserTest {
 
     public void testParsingPrefixExpressions() {
         PrefixTest[] tests = {
+                new PrefixTest("!true;", "!", true),
+                new PrefixTest("!false;", "!", false),
                 new PrefixTest("!5;", "!", 5),
                 new PrefixTest("-15;", "-", 15),
         };
@@ -219,41 +222,30 @@ public class ParserTest {
             }
 
             Expression expression = ((ExpressionStatement)statement).expression;
-            if (!(expression instanceof PrefixExpression)) {
-                println("expression is not PrefixExpression. got=" +
-                        (expression == null ? "null" : expression.getClass().getName()));
-                continue;
-            }
-
-            PrefixExpression prefixExpression = (PrefixExpression) expression;
-            if (!t.operator.equals(prefixExpression.operator)) {
-                println("prefixExpression.operator is not '" + t.operator +
-                        "'. got=" + (prefixExpression == null ? "null" : expression.getClass().getName()));
-                continue;
-            }
-
-            if (!testIntegerLiteral(prefixExpression.right, t.integerValue)) {
-                return;
-            }
+            testPrefixExpression(expression, t.operator, t.value);
 
         }
         println("success");
     }
 
-    private boolean testIntegerLiteral(Expression right , long value) {
-        if (!(right instanceof IntegerLiteral)) {
-            println("right not IntegerLiteral. got=" + right.getClass().getName());
+    private boolean testPrefixExpression(
+            Expression exp,
+            String operator,
+            Object right
+    ) {
+        if (!(exp instanceof PrefixExpression)) {
+            println("exp is not PrefixExpression. got=" +
+                    (exp == null ? "null" : exp.getClass().getName()));
             return false;
         }
 
-        IntegerLiteral integ = (IntegerLiteral) right;
-        if (integ.value != value) {
-            println("integ.value not " + value + ". got=" + integ.value);
+        PrefixExpression opExp = (PrefixExpression) exp;
+        if (!operator.equals(opExp.operator)) {
+            println("exp.operator is not '" + operator + "'. got=" + opExp.operator);
             return false;
         }
 
-        if (!String.valueOf(value).equals(integ.tokenLiteral())) {
-            println("integ.tokenLiteral not " + value + ". got=" + integ.tokenLiteral());
+        if (!testLiteralExpression(opExp.right, right)) {
             return false;
         }
 
@@ -263,17 +255,20 @@ public class ParserTest {
     private class PrefixTest {
         String input;
         String operator;
-        long integerValue;
+        Object value;
 
-        public PrefixTest(String input, String operator, long integerValue) {
+        public PrefixTest(String input, String operator, Object value) {
             this.input = input;
             this.operator = operator;
-            this.integerValue = integerValue;
+            this.value = value;
         }
     }
 
     public void testParsingInfixExpressions() {
         InfixTest[] infixTests = {
+                new InfixTest("true == true", true, "==", true),
+                new InfixTest("true != false", true, "!=", false),
+                new InfixTest("false == false", false, "==", false),
                 new InfixTest("5 + 5;", 5, "+", 5),
                 new InfixTest("5 - 5;", 5, "-", 5),
                 new InfixTest("5 * 5;", 5, "*", 5),
@@ -303,38 +298,125 @@ public class ParserTest {
             }
 
             Expression expression = ((ExpressionStatement)statement).expression;
-            if (!(expression instanceof InfixExpression)) {
-                println("expression is not InfixExpression. got=" +
-                        (expression == null ? "null" : expression.getClass().getName()));
-                continue;
-            }
-
-            InfixExpression infixExpression = (InfixExpression) expression;
-            if (!testIntegerLiteral(infixExpression.left, t.leftValue)) {
-                return;
-            }
-
-            if (!t.operator.equals(infixExpression.operator)) {
-                println("infixExpression.operator is not '" + t.operator +
-                        "'. got=" + (infixExpression == null ? "null" : expression.getClass().getName()));
-                continue;
-            }
-
-            if (!testIntegerLiteral(infixExpression.right, t.rightValue)) {
-                return;
-            }
-
+            testInfixExpression(expression, t.leftValue, t.operator, t.rightValue);
         }
         println("success");
     }
 
+    private boolean testIntegerLiteral(Expression right , long value) {
+        if (!(right instanceof IntegerLiteral)) {
+            println("right not IntegerLiteral. got=" + right.getClass().getName());
+            return false;
+        }
+
+        IntegerLiteral integ = (IntegerLiteral) right;
+        if (integ.value != value) {
+            println("integ.value not " + value + ". got=" + integ.value);
+            return false;
+        }
+
+        if (!String.valueOf(value).equals(integ.tokenLiteral())) {
+            println("integ.tokenLiteral not " + value + ". got=" + integ.tokenLiteral());
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean testIdentifier(Expression exp, String value) {
+        if (!(exp instanceof Identifier)) {
+            println("exp not Identifier. got=" +
+                    (exp == null ? "null" : exp.getClass().getName()));
+            return false;
+        }
+
+        Identifier ident = (Identifier) exp;
+        if (!value.equals(ident.value)) {
+            println("ident.value not " + value + ". got=" + ident.value);
+            return false;
+        }
+
+        if (!value.equals(ident.tokenLiteral())) {
+            println("ident.tokenLiteral not " + value + ". got=" + ident.tokenLiteral());
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean testBooleanLiteral(Expression exp, boolean value) {
+        if (!(exp instanceof Boolean)) {
+            println("exp not Boolean. got=" +
+                    (exp == null ? "null" : exp.getClass().getName()));
+            return false;
+        }
+
+        Boolean bo = (Boolean) exp;
+        if (bo.value != value) {
+            println("bo.value not " + value + ". got=" + bo.value);
+            return false;
+        }
+
+        if (!String.valueOf(value).equals(bo.tokenLiteral())) {
+            println("bo.tokenLiteral not " + value + ". got=" + bo.tokenLiteral());
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean testLiteralExpression(Expression exp, Object expected) {
+        if (expected instanceof Integer) {
+            return testIntegerLiteral(exp, (int) expected);
+        } else if ((expected instanceof Long)) {
+            return testIntegerLiteral(exp, (long) expected);
+        } else if (expected instanceof String) {
+            return testIdentifier(exp, (String) expected);
+        } else if (expected instanceof java.lang.Boolean) {
+            return testBooleanLiteral(exp, (java.lang.Boolean) expected);
+        } else {
+            println("type of exp not handled. got=" +
+                    (exp == null ? "null" : exp.getClass().getName()));
+            return false;
+        }
+    }
+
+    private boolean testInfixExpression(
+            Expression exp,
+            Object left,
+            String operator,
+            Object right
+    ) {
+        if (!(exp instanceof InfixExpression)) {
+            println("exp is not InfixExpression. got=" +
+                    (exp == null ? "null" : exp.getClass().getName()));
+            return false;
+        }
+
+        InfixExpression opExp = (InfixExpression) exp;
+        if (!testLiteralExpression(opExp.left, left)) {
+            return false;
+        }
+
+        if (!operator.equals(opExp.operator)) {
+            println("exp.operator is not '" + operator + "'. got=" + opExp.operator);
+            return false;
+        }
+
+        if (!testLiteralExpression(opExp.right, right)) {
+            return false;
+        }
+
+        return true;
+    }
+
     private class InfixTest {
         String input;
-        long leftValue;
+        Object leftValue;
         String operator;
-        long rightValue;
+        Object rightValue;
 
-        public InfixTest(String input, long leftValue, String operator, long rightValue) {
+        public InfixTest(String input, Object leftValue, String operator, Object rightValue) {
             this.input = input;
             this.leftValue = leftValue;
             this.operator = operator;
@@ -344,6 +426,15 @@ public class ParserTest {
 
     public void testOperatorPrecedenceParsing() {
         OperatorPrecedenceTest[] tests = {
+                new OperatorPrecedenceTest("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+                new OperatorPrecedenceTest("(5 + 5) * 2", "((5 + 5) * 2)"),
+                new OperatorPrecedenceTest("2 / (5 + 5)", "(2 / (5 + 5))"),
+                new OperatorPrecedenceTest("-(5 + 5)", "(-(5 + 5))"),
+                new OperatorPrecedenceTest("!(true == true)", "(!(true == true))"),
+                new OperatorPrecedenceTest("true", "true"),
+                new OperatorPrecedenceTest("false", "false"),
+                new OperatorPrecedenceTest("3 > 5 == false", "((3 > 5) == false)"),
+                new OperatorPrecedenceTest("3 < 5 == true", "((3 < 5) == true)"),
                 new OperatorPrecedenceTest("-a * b", "((-a) * b)"),
                 new OperatorPrecedenceTest("!-a", "(!(-a))"),
                 new OperatorPrecedenceTest("a + b + c", "((a + b) + c)"),
@@ -380,5 +471,40 @@ public class ParserTest {
             this.input = input;
             this.expected = expected;
         }
+    }
+
+    public void testBooleanExpression() {
+        String input = "true; false; let foobar = true; let barfoo = false;";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        if (program.statements.size() != 4) {
+            println("program has not enough statements. got=" +
+                    program.statements.size());
+            return;
+        }
+
+        Statement statement = program.statements.get(0);
+        if (!(statement instanceof ExpressionStatement)) {
+            println("program.Statements[0] is not ExpressionStatement. got=" +
+                    statement.getClass().getName());
+            return;
+        }
+
+        Expression expression = ((ExpressionStatement)statement).expression;
+        if (!(expression instanceof Boolean)) {
+            println("expression not Boolean. got=" +
+                    (expression == null ? "null" : expression.getClass().getName()));
+            return;
+        }
+
+        Boolean b = (Boolean) expression;
+        if (!("true".equals(b.tokenLiteral()) || "false".equals(b.tokenLiteral()))) {
+            println("literal.tokenLiteral not 'true' or 'false'. got=" + b.tokenLiteral());
+            return;
+        }
+
+        println("success");
     }
 }

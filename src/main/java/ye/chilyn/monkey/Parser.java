@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ye.chilyn.monkey.ast.Boolean;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
 import ye.chilyn.monkey.ast.Identifier;
@@ -51,6 +52,9 @@ public class Parser {
         registerPrefix(TokenType.INT, parseIntegerLiteral);
         registerPrefix(TokenType.BANG, parsePrefixExpression);
         registerPrefix(TokenType.MINUS, parsePrefixExpression);
+        registerPrefix(TokenType.TRUE, parseBoolean);
+        registerPrefix(TokenType.FALSE, parseBoolean);
+        registerPrefix(TokenType.LPAREN, parseGroupedExpression);
         infixParseFns = new HashMap<>();
         registerInfix(TokenType.PLUS, parseInfixExpression);
         registerInfix(TokenType.MINUS, parseInfixExpression);
@@ -245,6 +249,26 @@ public class Parser {
             nextToken();
             expression.right = parseExpression(PREFIX);
             return expression;
+        }
+    };
+
+    private PrefixParseFn parseBoolean = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            return new Boolean(curToken, curTokenIs(TokenType.TRUE));
+        }
+    };
+
+    private PrefixParseFn parseGroupedExpression = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            nextToken();
+            Expression exp = parseExpression(LOWEST);
+            if (!expectPeek(TokenType.RPAREN)) {
+                return null;
+            }
+
+            return exp;
         }
     };
 
