@@ -8,9 +8,12 @@ import static ye.chilyn.monkey.Printer.println;
 import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Parser;
 import ye.chilyn.monkey.ast.Boolean;
+import ye.chilyn.monkey.ast.CallExpression;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
+import ye.chilyn.monkey.ast.FunctionLiteral;
 import ye.chilyn.monkey.ast.Identifier;
+import ye.chilyn.monkey.ast.IfExpression;
 import ye.chilyn.monkey.ast.InfixExpression;
 import ye.chilyn.monkey.ast.IntegerLiteral;
 import ye.chilyn.monkey.ast.LetStatement;
@@ -22,32 +25,46 @@ import ye.chilyn.monkey.ast.Statement;
 public class ParserTest {
 
     public void testLetStatements() {
-        String input = "let x  5;" +
-                "let y = 10;" +
-                "let foobar = 838383;";
-        Lexer lexer = new Lexer(input);
-        Parser parser = new Parser(lexer);
-        Program program = parser.parseProgram();
-        checkParserErrors(parser);
-        if (program == null) {
-            println("parseProgram() returned null");
-            return;
-        }
+        LetStatementTest[] tests = {
+                new LetStatementTest("let x = 5;", "x", 5),
+                new LetStatementTest("let y = true;", "y", true),
+                new LetStatementTest("let foobar = y", "foobar", "y"),
+        };
 
-        int len = program.statements.size();
-        if (len != 3) {
-            println("program.statements does not contain 3 statements. got=" + len);
-            return;
-        }
+        for (LetStatementTest tt : tests) {
+            Lexer lexer = new Lexer(tt.input);
+            Parser parser = new Parser(lexer);
+            Program program = parser.parseProgram();
+            checkParserErrors(parser);
+            int len = program.statements.size();
+            if (len != 1) {
+                println("program.statements does not contain 1 statements. got=" + len);
+                return;
+            }
 
-        String[] expectedIndentifiers = {"x", "y", "foobar"};
-        for (int i = 0; i < expectedIndentifiers.length; i++) {
-            Statement statement = program.statements.get(i);
-            if (!testLetStatement(statement, expectedIndentifiers[i])) {
+            Statement statement = program.statements.get(0);
+            if (!testLetStatement(statement, tt.expectedIdentifier)) {
+                return;
+            }
+
+            Expression val = ((LetStatement) statement).value;
+            if (!testLiteralExpression(val, tt.expectedValue)) {
                 return;
             }
         }
         println("success");
+    }
+
+    private class LetStatementTest {
+        String input;
+        String expectedIdentifier;
+        Object expectedValue;
+
+        public LetStatementTest(String input, String expectedIdentifier, Object expectedValue) {
+            this.input = input;
+            this.expectedIdentifier = expectedIdentifier;
+            this.expectedValue = expectedValue;
+        }
     }
 
     private void checkParserErrors(Parser parser) {
@@ -305,7 +322,7 @@ public class ParserTest {
 
     private boolean testIntegerLiteral(Expression right , long value) {
         if (!(right instanceof IntegerLiteral)) {
-            println("right not IntegerLiteral. got=" + right.getClass().getName());
+            println("right not IntegerLiteral. got=" + (right == null ? "null" : right.getClass().getName()));
             return false;
         }
 
@@ -426,6 +443,9 @@ public class ParserTest {
 
     public void testOperatorPrecedenceParsing() {
         OperatorPrecedenceTest[] tests = {
+                new OperatorPrecedenceTest("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+                new OperatorPrecedenceTest("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"),
+                new OperatorPrecedenceTest("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"),
                 new OperatorPrecedenceTest("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
                 new OperatorPrecedenceTest("(5 + 5) * 2", "((5 + 5) * 2)"),
                 new OperatorPrecedenceTest("2 / (5 + 5)", "(2 / (5 + 5))"),
@@ -505,6 +525,269 @@ public class ParserTest {
             return;
         }
 
+        println("success");
+    }
+
+    public void testIfExpression() {
+        String input = "if (x < y) { x }";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        int len = program.statements.size();
+        if (len != 1) {
+            println("program.statements does not contain 1 statements. got=" + len);
+            return;
+        }
+
+        Statement statement = program.statements.get(0);
+        if (!(statement instanceof ExpressionStatement)) {
+            println("program.Statements[0] is not ExpressionStatement. got=" +
+                    statement.getClass().getName());
+            return;
+        }
+
+        Expression expression = ((ExpressionStatement)statement).expression;
+        if (!(expression instanceof IfExpression)) {
+            println("expression not IfExpression. got=" +
+                    (expression == null ? "null" : expression.getClass().getName()));
+            return;
+        }
+
+        IfExpression exp = (IfExpression) expression;
+        if (!testInfixExpression(exp.condition, "x", "<", "y")) {
+            return;
+        }
+
+        if (exp.consequence.statements.size() != 1) {
+            println("consequence is not 1 statements. got=" + exp.consequence.statements.size());
+            return;
+        }
+
+        Statement conseSmtt = exp.consequence.statements.get(0);
+        if (!(conseSmtt instanceof ExpressionStatement)) {
+            println("consequence.tatements[0] is not ExpressionStatement. got=" +
+                    (conseSmtt == null ? "null" : conseSmtt.getClass().getName()));
+            return;
+        }
+
+        ExpressionStatement consequence = (ExpressionStatement) conseSmtt;
+        if (!testIdentifier(consequence.expression, "x")) {
+            return;
+        }
+
+        if (exp.alternative != null) {
+            println("exp.Alternative.Statements was not null. got=" +
+                    exp.alternative.tokenLiteral());
+            return;
+        }
+
+        println("success");
+    }
+
+    public void testIfElseExpression() {
+        String input = "if (x < y) { x } else { y }";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        int len = program.statements.size();
+        if (len != 1) {
+            println("program.statements does not contain 1 statements. got=" + len);
+            return;
+        }
+
+        Statement statement = program.statements.get(0);
+        if (!(statement instanceof ExpressionStatement)) {
+            println("program.Statements[0] is not ExpressionStatement. got=" +
+                    statement.getClass().getName());
+            return;
+        }
+
+        Expression expression = ((ExpressionStatement)statement).expression;
+        if (!(expression instanceof IfExpression)) {
+            println("expression not IfExpression. got=" +
+                    (expression == null ? "null" : expression.getClass().getName()));
+            return;
+        }
+
+        IfExpression exp = (IfExpression) expression;
+        if (!testInfixExpression(exp.condition, "x", "<", "y")) {
+            return;
+        }
+
+        if (exp.consequence.statements.size() != 1) {
+            println("consequence is not 1 statements. got=" + exp.consequence.statements.size());
+            return;
+        }
+
+        Statement conseSmtt = exp.consequence.statements.get(0);
+        if (!(conseSmtt instanceof ExpressionStatement)) {
+            println("consequence.tatements[0] is not ExpressionStatement. got=" +
+                    (conseSmtt == null ? "null" : conseSmtt.getClass().getName()));
+            return;
+        }
+
+        ExpressionStatement consequence = (ExpressionStatement) conseSmtt;
+        if (!testIdentifier(consequence.expression, "x")) {
+            return;
+        }
+
+        if (exp.alternative == null) {
+            println("exp.Alternative.Statements was  null");
+        }
+
+        if (exp.alternative.statements.size() != 1) {
+            println("consequence is not 1 statements. got=" + exp.alternative.statements.size());
+            return;
+        }
+
+        Statement alterSmtt = exp.alternative.statements.get(0);
+        if (!(alterSmtt instanceof ExpressionStatement)) {
+            println("alterSmtt.tatements[0] is not ExpressionStatement. got=" +
+                    (alterSmtt == null ? "null" : alterSmtt.getClass().getName()));
+            return;
+        }
+
+        ExpressionStatement alternative = (ExpressionStatement) alterSmtt;
+        if (!testIdentifier(alternative.expression, "y")) {
+            return;
+        }
+
+        println("success");
+    }
+
+    public void testFunctionLiteralParsing() {
+        String input = "fn(x, y) { x + y; }";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        int len = program.statements.size();
+        if (len != 1) {
+            println("program.statements does not contain 1 statements. got=" + len);
+            return;
+        }
+
+        Statement statement = program.statements.get(0);
+        if (!(statement instanceof ExpressionStatement)) {
+            println("program.Statements[0] is not ExpressionStatement. got=" +
+                    statement.getClass().getName());
+            return;
+        }
+
+        Expression expression = ((ExpressionStatement)statement).expression;
+        if (!(expression instanceof FunctionLiteral)) {
+            println("expression not FunctionLiteral. got=" +
+                    (expression == null ? "null" : expression.getClass().getName()));
+            return;
+        }
+
+        FunctionLiteral function = (FunctionLiteral) expression;
+        if (function.parameters.size() != 2) {
+            println("function literal parameters wrong. want 2, got=" + function.parameters.size());
+            return;
+        }
+
+        testLiteralExpression(function.parameters.get(0), "x");
+        testLiteralExpression(function.parameters.get(1), "y");
+
+        int bodyStatementsSize = function.body.statements.size();
+        if (bodyStatementsSize != 1) {
+            println("function.body.statements has not 1 statements. got=" + bodyStatementsSize);
+            return;
+        }
+
+        Statement bodyStmt = function.body.statements.get(0);
+        if (!(bodyStmt instanceof ExpressionStatement)) {
+            println("function.body.statements[0] is not ExpressionStatement. got=" +
+                    (bodyStmt == null ? "null" : bodyStmt.getClass().getName()));
+            return;
+        }
+
+        if (!testInfixExpression(((ExpressionStatement) bodyStmt).expression, "x", "+", "y")) {
+            return;
+        }
+        println("success");
+    }
+
+    public void testFunctionParameterParsing() {
+        FunctionParameterTest[] tests = {
+                new FunctionParameterTest("fn() {};", new String[]{}),
+                new FunctionParameterTest("fn(x) {};", new String[]{"x"}),
+                new FunctionParameterTest("fn(x, y, z) {};", new String[]{"x", "y", "z"}),
+        };
+
+        for (FunctionParameterTest tt : tests) {
+            Lexer lexer = new Lexer(tt.input);
+            Parser parser = new Parser(lexer);
+            Program program = parser.parseProgram();
+            checkParserErrors(parser);
+            ExpressionStatement smtt = (ExpressionStatement) program.statements.get(0);
+            FunctionLiteral function = (FunctionLiteral) smtt.expression;
+            if (function.parameters.size() != tt.expectedParams.length) {
+                println("length parameters wrong. want " + tt.expectedParams.length + ", got=" + function.parameters.size());
+                return;
+            }
+
+            for (int i = 0; i < tt.expectedParams.length; i++) {
+                String ident = tt.expectedParams[i];
+                testLiteralExpression(function.parameters.get(i), ident);
+            }
+        }
+
+        println("success");
+    }
+
+    private class FunctionParameterTest {
+        String input;
+        String[] expectedParams;
+
+        public FunctionParameterTest(String input, String[] expectedParams) {
+            this.input = input;
+            this.expectedParams = expectedParams;
+        }
+    }
+
+    public void testCallExpressionParsing() {
+        String input = "add(1, 2 * 3, 4 + 5);";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        int len = program.statements.size();
+        if (len != 1) {
+            println("program.statements does not contain 1 statements. got=" + len);
+            return;
+        }
+
+        Statement statement = program.statements.get(0);
+        if (!(statement instanceof ExpressionStatement)) {
+            println("program.Statements[0] is not ExpressionStatement. got=" +
+                    statement.getClass().getName());
+            return;
+        }
+
+        Expression expression = ((ExpressionStatement)statement).expression;
+        if (!(expression instanceof CallExpression)) {
+            println("expression not CallExpression. got=" +
+                    (expression == null ? "null" : expression.getClass().getName()));
+            return;
+        }
+
+        CallExpression exp = (CallExpression) expression;
+        if (!testIdentifier(exp.function, "add")) {
+            return;
+        }
+
+        if (exp.arguments.size() != 3) {
+            println("wrong length of arguments. got=" + exp.arguments.size()) ;
+            return;
+        }
+
+        testLiteralExpression(exp.arguments.get(0), 1);
+        testInfixExpression(exp.arguments.get(1), 2, "*", 3);
+        testInfixExpression(exp.arguments.get(2), 4, "+", 5);
         println("success");
     }
 }

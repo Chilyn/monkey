@@ -3,8 +3,10 @@ package ye.chilyn.monkey;
 import static ye.chilyn.monkey.Printer.print;
 import static ye.chilyn.monkey.Printer.println;
 
+import java.util.List;
 import java.util.Scanner;
 
+import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.test.ASTTest;
 import ye.chilyn.monkey.test.LexerTest;
 import ye.chilyn.monkey.test.ParserTest;
@@ -14,16 +16,22 @@ public class Main {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
-//        startREPL();
+        startREPL();
 
         ParserTest parserTest = new ParserTest();
+//        parserTest.testLetStatements();
 //        parserTest.testReturnStatements();
 //        parserTest.testIdentifierExpression();
 //        parserTest.testIntegerLiteralExpression();
 //        parserTest.testParsingPrefixExpressions();
 //        parserTest.testParsingInfixExpressions();
-        parserTest.testOperatorPrecedenceParsing();
+//        parserTest.testOperatorPrecedenceParsing();
 //        parserTest.testBooleanExpression();
+//        parserTest.testIfExpression();
+//        parserTest.testIfElseExpression();
+//        parserTest.testFunctionLiteralParsing();
+//        parserTest.testFunctionParameterParsing();
+//        parserTest.testCallExpressionParsing();
 
 //        ASTTest test = new ASTTest();
 //        test.testString();
@@ -38,9 +46,22 @@ public class Main {
             print(prompt);
             String line = scan.nextLine();
             Lexer l = new Lexer(line);
-            for (Token tok = l.nextToken(); !TokenType.EOF.equals(tok.getType()); tok = l.nextToken()) {
-                println(tok);
+            Parser p = new Parser(l);
+            Program program = p.parseProgram();
+            if (p.errors().size() != 0) {
+                printParserErrors(p.errors());
+                continue;
             }
+
+            println(program.string());
+        }
+    }
+
+    private static void printParserErrors(List<String> errors) {
+        println("Woops! We ran into some monkey business here!");
+        println("parser errors:");
+        for (String msg : errors) {
+            println("\t" + msg);
         }
     }
 }

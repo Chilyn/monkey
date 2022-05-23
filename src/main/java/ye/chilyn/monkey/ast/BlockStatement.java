@@ -1,12 +1,14 @@
 package ye.chilyn.monkey.ast;
 
+import java.util.List;
+
 import ye.chilyn.monkey.Token;
 
-public class ReturnStatement implements Statement {
+public class BlockStatement implements Statement {
     private Token token;
-    public Expression returnValue;
+    public List<Statement> statements;
 
-    public ReturnStatement(Token token) {
+    public BlockStatement(Token token) {
         this.token = token;
     }
 
@@ -22,12 +24,10 @@ public class ReturnStatement implements Statement {
 
     @Override
     public String string() {
-        String result = tokenLiteral() + " ";
-        if (returnValue != null) {
-            result += returnValue.string();
+        StringBuilder sb  = new StringBuilder();
+        for (Statement statement : statements) {
+            sb.append(statement.string());
         }
-
-        result += ";";
-        return result;
+        return sb.toString();
     }
 }

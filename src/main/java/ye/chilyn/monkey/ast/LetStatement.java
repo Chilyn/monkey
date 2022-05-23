@@ -5,7 +5,7 @@ import ye.chilyn.monkey.Token;
 public class LetStatement implements Statement {
     private Token token;
     public Identifier name;
-    private Expression value;
+    public Expression value;
 
     public LetStatement(Token token) {
         this.token = token;

@@ -5,10 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ye.chilyn.monkey.ast.BlockStatement;
 import ye.chilyn.monkey.ast.Boolean;
+import ye.chilyn.monkey.ast.CallExpression;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
+import ye.chilyn.monkey.ast.FunctionLiteral;
 import ye.chilyn.monkey.ast.Identifier;
+import ye.chilyn.monkey.ast.IfExpression;
 import ye.chilyn.monkey.ast.InfixExpression;
 import ye.chilyn.monkey.ast.IntegerLiteral;
 import ye.chilyn.monkey.ast.LetStatement;
@@ -55,6 +59,8 @@ public class Parser {
         registerPrefix(TokenType.TRUE, parseBoolean);
         registerPrefix(TokenType.FALSE, parseBoolean);
         registerPrefix(TokenType.LPAREN, parseGroupedExpression);
+        registerPrefix(TokenType.IF, parseIfExpression);
+        registerPrefix(TokenType.FUNCTION, parseFunctionLiteral);
         infixParseFns = new HashMap<>();
         registerInfix(TokenType.PLUS, parseInfixExpression);
         registerInfix(TokenType.MINUS, parseInfixExpression);
@@ -64,6 +70,7 @@ public class Parser {
         registerInfix(TokenType.NOT_EQ, parseInfixExpression);
         registerInfix(TokenType.LT, parseInfixExpression);
         registerInfix(TokenType.GT, parseInfixExpression);
+        registerInfix(TokenType.LPAREN,  parseCallExpression);
         nextToken();
         nextToken();
     }
@@ -107,7 +114,9 @@ public class Parser {
             return null;
         }
 
-        while (!curTokenIs(TokenType.SEMICOLON)) {
+        nextToken();
+        statement.value = parseExpression(LOWEST);
+        if (peekTokenIs(TokenType.SEMICOLON)) {
             nextToken();
         }
         return statement;
@@ -117,7 +126,8 @@ public class Parser {
         ReturnStatement statement = new ReturnStatement(curToken);
         nextToken();
 
-        while (!curTokenIs(TokenType.SEMICOLON)) {
+        statement.returnValue = parseExpression(LOWEST);
+        if (peekTokenIs(TokenType.SEMICOLON)) {
             nextToken();
         }
         return statement;
@@ -130,6 +140,20 @@ public class Parser {
             nextToken();
         }
         return statement;
+    }
+
+    private BlockStatement parseBlockStatement() {
+        BlockStatement block = new BlockStatement(curToken);
+        block.statements = new ArrayList<>();
+        nextToken();
+        while (!curTokenIs(TokenType.RBRACE)) {
+            Statement smtt = parseStatement();
+            if (smtt != null) {
+                block.statements.add(smtt);
+            }
+            nextToken();
+        }
+        return block;
     }
 
     private boolean curTokenIs(String tokenType) {
@@ -272,6 +296,77 @@ public class Parser {
         }
     };
 
+    private PrefixParseFn parseIfExpression = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            IfExpression expression = new IfExpression(curToken);
+            if (!expectPeek(TokenType.LPAREN)) {
+                return null;
+            }
+
+            nextToken();
+            expression.condition = parseExpression(LOWEST);
+            if (!expectPeek(TokenType.RPAREN)) {
+                return null;
+            }
+
+            if (!expectPeek(TokenType.LBRACE)) {
+                return null;
+            }
+
+            expression.consequence = parseBlockStatement();
+            if (peekTokenIs(TokenType.ELSE)) {
+                nextToken();
+                if (!expectPeek(TokenType.LBRACE)) {
+                    return null;
+                }
+
+                expression.alternative = parseBlockStatement();
+            }
+            return expression;
+        }
+    };
+
+    private PrefixParseFn parseFunctionLiteral = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            FunctionLiteral expression = new FunctionLiteral(curToken);
+            if (!expectPeek(TokenType.LPAREN)) {
+                return null;
+            }
+
+            expression.parameters = parseFunctionParameters();
+            if (!expectPeek(TokenType.LBRACE)) {
+                return null;
+            }
+
+            expression.body = parseBlockStatement();
+            return expression;
+        }
+
+        private List<Identifier> parseFunctionParameters() {
+            List<Identifier> identifiers = new ArrayList<>();
+            if (peekTokenIs(TokenType.RPAREN)) {
+                nextToken();
+                return identifiers;
+            }
+
+            nextToken();
+            identifiers.add(new Identifier(curToken, curToken.getLiteral()));
+            while (peekTokenIs(TokenType.COMMA)) {
+                nextToken();
+                nextToken();
+                identifiers.add(new Identifier(curToken, curToken.getLiteral()));
+            }
+
+            if (!expectPeek(TokenType.RPAREN)) {
+                return null;
+            }
+
+            return identifiers;
+        }
+    };
+
     private InfixParseFn parseInfixExpression = new InfixParseFn() {
         @Override
         public Expression infixParseFn(Expression left) {
@@ -284,6 +379,36 @@ public class Parser {
             nextToken();
             expression.right = parseExpression(precedence);
             return expression;
+        }
+    };
+
+    private InfixParseFn parseCallExpression = new InfixParseFn() {
+        @Override
+        public Expression infixParseFn(Expression function) {
+            CallExpression expression = new CallExpression(curToken, function);
+            expression.arguments = parseCallArguments();
+            return expression;
+        }
+
+        private List<Expression> parseCallArguments() {
+            List<Expression> args = new ArrayList<>();
+            if (peekTokenIs(TokenType.RPAREN)) {
+                nextToken();
+                return args;
+            }
+
+            nextToken();
+            args.add(parseExpression(LOWEST));
+            while (peekTokenIs(TokenType.COMMA)) {
+                nextToken();
+                nextToken();
+                args.add(parseExpression(LOWEST));
+            }
+
+            if (!expectPeek(TokenType.RPAREN)) {
+                return null;
+            }
+            return args;
         }
     };
 }
