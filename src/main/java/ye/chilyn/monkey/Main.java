@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Scanner;
 
 import ye.chilyn.monkey.ast.Program;
+import ye.chilyn.monkey.object.Object;
 import ye.chilyn.monkey.test.ASTTest;
+import ye.chilyn.monkey.test.EvaluatorTest;
 import ye.chilyn.monkey.test.LexerTest;
 import ye.chilyn.monkey.test.ParserTest;
 
@@ -16,9 +18,9 @@ public class Main {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
-        startREPL();
+//        startREPL();
 
-        ParserTest parserTest = new ParserTest();
+//        ParserTest parserTest = new ParserTest();
 //        parserTest.testLetStatements();
 //        parserTest.testReturnStatements();
 //        parserTest.testIdentifierExpression();
@@ -35,6 +37,11 @@ public class Main {
 
 //        ASTTest test = new ASTTest();
 //        test.testString();
+
+        EvaluatorTest test = new EvaluatorTest();
+//        test.testEvalIntegerExpression();
+//        test.testEvalBooleanExpression();
+        test.testBangOperator();
     }
 
     public static void startREPL() {
@@ -53,7 +60,10 @@ public class Main {
                 continue;
             }
 
-            println(program.string());
+            Object evaluated = new Evaluator().eval(program);
+            if (evaluated != null) {
+                println(evaluated.inspect());
+            }
         }
     }
 
