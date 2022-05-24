@@ -15,6 +15,8 @@ public class EvaluatorTest {
         EvalIntegerExpressionTest[] tests = {
                 new EvalIntegerExpressionTest("5", 5),
                 new EvalIntegerExpressionTest("10", 10),
+                new EvalIntegerExpressionTest("-5", -5),
+                new EvalIntegerExpressionTest("-10", -10),
         };
 
         for (EvalIntegerExpressionTest tt : tests) {

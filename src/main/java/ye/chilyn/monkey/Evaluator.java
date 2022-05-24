@@ -12,6 +12,7 @@ import ye.chilyn.monkey.object.Boolean;
 import ye.chilyn.monkey.object.Integer;
 import ye.chilyn.monkey.object.Null;
 import ye.chilyn.monkey.object.Object;
+import ye.chilyn.monkey.object.ObjectType;
 
 public class Evaluator {
     private static final Null NULL = new Null();
@@ -56,6 +57,8 @@ public class Evaluator {
         switch (operator) {
             case "!":
                 return evalBangOperatorExpression(right);
+            case "-":
+                return evalMinusPrefixOperatorExpression(right);
             default:
                 return NULL;
         }
@@ -71,5 +74,14 @@ public class Evaluator {
         } else {
             return FALSE;
         }
+    }
+
+    private Object evalMinusPrefixOperatorExpression(Object right) {
+        if (!ObjectType.INTEGER_OBJ.equals(right.type())) {
+            return NULL;
+        }
+
+        long value = ((Integer) right).value;
+        return new Integer(-value);
     }
 }
