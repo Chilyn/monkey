@@ -18,7 +18,7 @@ public class Main {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
-        startREPL();
+//        startREPL();
 
 //        ParserTest parserTest = new ParserTest();
 //        parserTest.testLetStatements();
@@ -42,6 +42,9 @@ public class Main {
 //        test.testEvalIntegerExpression();
 //        test.testEvalBooleanExpression();
 //        test.testBangOperator();
+//        test.testIfElseExpressions();
+//        test.testReturnStatements();
+        test.testErrorHandling();
     }
 
     public static void startREPL() {
