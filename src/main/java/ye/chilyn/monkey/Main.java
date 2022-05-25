@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import ye.chilyn.monkey.ast.Program;
+import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Object;
 import ye.chilyn.monkey.test.ASTTest;
 import ye.chilyn.monkey.test.EvaluatorTest;
@@ -18,7 +19,7 @@ public class Main {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
-//        startREPL();
+        startREPL();
 
 //        ParserTest parserTest = new ParserTest();
 //        parserTest.testLetStatements();
@@ -44,13 +45,15 @@ public class Main {
 //        test.testBangOperator();
 //        test.testIfElseExpressions();
 //        test.testReturnStatements();
-        test.testErrorHandling();
+//        test.testErrorHandling();
+//        test.testLetStatements();
     }
 
     public static void startREPL() {
         println("This is the Monkey programming language!");
         println("Feel free to type in commands");
         Scanner scan = new Scanner(System.in);
+        Environment env = new Environment();
         String prompt = ">> ";
         while (true) {
             print(prompt);
@@ -63,7 +66,7 @@ public class Main {
                 continue;
             }
 
-            Object evaluated = new Evaluator().eval(program);
+            Object evaluated = new Evaluator().eval(program, env);
             if (evaluated != null) {
                 println(evaluated.inspect());
             }

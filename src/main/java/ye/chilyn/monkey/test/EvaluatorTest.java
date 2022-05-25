@@ -5,6 +5,7 @@ import ye.chilyn.monkey.Parser;
 import ye.chilyn.monkey.Evaluator;
 import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.object.Boolean;
+import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Error;
 import ye.chilyn.monkey.object.Integer;
 import ye.chilyn.monkey.object.Object;
@@ -43,7 +44,8 @@ public class EvaluatorTest {
         Parser parser = new Parser(lexer);
         Program program = parser.parseProgram();
         Evaluator evaluator = new Evaluator();
-        return evaluator.eval(program);
+        Environment env = new Environment();
+        return evaluator.eval(program, env);
     }
 
     private boolean testIntegerObject(Object obj, long expected) {
@@ -226,6 +228,8 @@ public class EvaluatorTest {
 
     public void testErrorHandling() {
         ErrorHandlingTest[] tests = {
+                new ErrorHandlingTest("foobar", "identifier not found: foobar"),
+                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
                 new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
                 new ErrorHandlingTest("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN"),
                 new ErrorHandlingTest("-true", "unknown operator: -BOOLEAN"),
@@ -238,12 +242,21 @@ public class EvaluatorTest {
         for (ErrorHandlingTest tt : tests) {
             Object evaluated = testEval(tt.input);
             if (!(evaluated instanceof Error)) {
-                println("no error object returned. got=" + evaluated.getClass().getName() + "(" + evaluated.inspect() + ")");
+                StringBuilder sb = new StringBuilder("no error object returned. got=");
+                if (evaluated == null) {
+                    sb.append("null");
+                } else {
+                    sb.append(evaluated.getClass().getName());
+                    sb.append("(");
+                    sb.append(evaluated.inspect());
+                    sb.append(")");
+                }
+                println(sb.toString());
                 continue;
             }
 
             Error error = (Error) evaluated;
-            if (tt.expectedMessage.equals(error.message)) {
+            if (!tt.expectedMessage.equals(error.message)) {
                 println("wrong error message. expected=" + tt.expectedMessage + ", got=" + error.message);
             }
         }
@@ -257,6 +270,31 @@ public class EvaluatorTest {
         public ErrorHandlingTest(String input, String expectedMessage) {
             this.input = input;
             this.expectedMessage = expectedMessage;
+        }
+    }
+
+    public void testLetStatements() {
+        LetStatementsTest[] tests = {
+                new LetStatementsTest("let a = 5; a;", 5),
+                new LetStatementsTest("let a = 5 * 5; a;", 25),
+                new LetStatementsTest("let a = 5; let b = a; b;", 5),
+                new LetStatementsTest("let a = 5; let b = a; let c = a + b + 5; c;", 15),
+        };
+
+        for (LetStatementsTest tt : tests) {
+            testIntegerObject(testEval(tt.input), tt.expected);
+        }
+
+        println("success");
+    }
+
+    private class LetStatementsTest {
+        String input;
+        long expected;
+
+        public LetStatementsTest(String input, long expected) {
+            this.input = input;
+            this.expected = expected;
         }
     }
 }
