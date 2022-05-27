@@ -19,7 +19,7 @@ public class Main {
 //        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
-        startREPL();
+//        startREPL();
 
 //        ParserTest parserTest = new ParserTest();
 //        parserTest.testLetStatements();
@@ -46,7 +46,9 @@ public class Main {
 //        test.testIfElseExpressions();
 //        test.testReturnStatements();
 //        test.testErrorHandling();
-//        test.testLetStatements();
+//        test.testFunctionObject();
+//        test.testFunctionApplication();
+        test.testClosures();
     }
 
     public static void startREPL() {

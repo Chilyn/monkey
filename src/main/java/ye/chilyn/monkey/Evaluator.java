@@ -1,9 +1,13 @@
 package ye.chilyn.monkey;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import ye.chilyn.monkey.ast.BlockStatement;
+import ye.chilyn.monkey.ast.CallExpression;
+import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
+import ye.chilyn.monkey.ast.FunctionLiteral;
 import ye.chilyn.monkey.ast.Identifier;
 import ye.chilyn.monkey.ast.IfExpression;
 import ye.chilyn.monkey.ast.InfixExpression;
@@ -17,6 +21,7 @@ import ye.chilyn.monkey.ast.Statement;
 import ye.chilyn.monkey.object.Boolean;
 import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Error;
+import ye.chilyn.monkey.object.Function;
 import ye.chilyn.monkey.object.Integer;
 import ye.chilyn.monkey.object.Null;
 import ye.chilyn.monkey.object.Object;
@@ -74,6 +79,22 @@ public class Evaluator {
             env.set(statement.name.value, val);
         } else if (node instanceof Identifier) {
             return evalIdentifier((Identifier) node, env);
+        } else if (node instanceof FunctionLiteral) {
+            List<Identifier> parameters = ((FunctionLiteral) node).parameters;
+            BlockStatement body = ((FunctionLiteral) node).body;
+            return new Function(parameters, body, env);
+        } else if (node instanceof CallExpression) {
+            Object function = eval(((CallExpression) node).function, env);
+            if (isError(function)) {
+                return function;
+            }
+
+            List<Object> args = evalExpressions(((CallExpression) node).arguments, env);
+            if (args.size() == 1 && isError(args.get(0))) {
+                return args.get(0);
+            }
+
+            return applyFunction(function, args);
         }
 
         return null;
@@ -209,6 +230,50 @@ public class Evaluator {
         }
 
         return val;
+    }
+
+    private List<Object> evalExpressions(List<Expression> exps, Environment env) {
+        List<Object> result = new ArrayList<>();
+        for (Expression e : exps) {
+            Object evaluated = eval(e, env);
+            if (isError(evaluated)) {
+                List<Object> errors = new ArrayList<>();
+                errors.add(evaluated);
+                return errors;
+            }
+            result.add(evaluated);
+        }
+
+        return result;
+    }
+
+    private Object applyFunction(Object fn, List<Object> args) {
+        if (!(fn instanceof Function)) {
+            return new Error("not a function: " + fn.type());
+        }
+
+        Function function = (Function) fn;
+        Environment extendedEnv = extendFunctionEnv(function, args);
+        Object evaluated = eval(function.body, extendedEnv);
+        return unwrapReturnValue(evaluated);
+    }
+
+    private Environment extendFunctionEnv(Function fn, List<Object> args) {
+        Environment env = new Environment(fn.env);
+        for (int i = 0; i < fn.parameters.size(); i++) {
+            Identifier param = fn.parameters.get(i);
+            env.set(param.value, args.get(i));
+        }
+
+        return env;
+    }
+
+    private Object unwrapReturnValue(Object obj) {
+        if (obj instanceof ReturnValue) {
+            return ((ReturnValue) obj).value;
+        }
+
+        return obj;
     }
 
     private boolean isTruthy(Object obj) {

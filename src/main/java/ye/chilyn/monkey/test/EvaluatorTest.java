@@ -7,6 +7,7 @@ import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.object.Boolean;
 import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Error;
+import ye.chilyn.monkey.object.Function;
 import ye.chilyn.monkey.object.Integer;
 import ye.chilyn.monkey.object.Object;
 
@@ -296,5 +297,77 @@ public class EvaluatorTest {
             this.input = input;
             this.expected = expected;
         }
+    }
+
+    public void testFunctionObject() {
+        String input = "fn(x) { x + 2; };";
+        Object evaluated = testEval(input);
+        if (!(evaluated instanceof Function)) {
+            StringBuilder sb = new StringBuilder("object is not Function. got=");
+            if (evaluated == null) {
+                sb.append("null");
+            } else {
+                sb.append(evaluated.getClass().getName());
+                sb.append("(");
+                sb.append(evaluated.inspect());
+                sb.append(")");
+            }
+            println(sb.toString());
+            return;
+        }
+
+        Function fn = (Function) evaluated;
+        if (fn.parameters.size() != 1) {
+            println("function has wrong parameters. Parameters=" + fn.parameters.toString());
+            return;
+        }
+
+        if (!"x".equals(fn.parameters.get(0).string())) {
+            println("parameter is not 'x'. got=" + fn.parameters.get(0).string());
+            return;
+        }
+
+        String expectedBody = "(x + 2)";
+        if (!expectedBody.equals(fn.body.string())) {
+            println("body is not " + expectedBody + ". got=" + fn.body.string());
+            return;
+        }
+
+        println("success");
+    }
+
+    public void testFunctionApplication() {
+        FunctionApplicationTest[] tests = {
+                new FunctionApplicationTest("let identity = fn(x) { x; }; identity(5);", 5),
+                new FunctionApplicationTest("let identity = fn(x) { return x; }; identity(5);", 5),
+                new FunctionApplicationTest("let double = fn(x) { x * 2; }; double(5);", 10),
+                new FunctionApplicationTest("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
+                new FunctionApplicationTest("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20),
+                new FunctionApplicationTest("fn(x) { x; }(5)", 5),
+        };
+
+        for (FunctionApplicationTest tt : tests) {
+            testIntegerObject(testEval(tt.input), tt.expected);
+        }
+
+        println("success");
+    }
+
+    private class FunctionApplicationTest {
+        String input;
+        long expected;
+
+        public FunctionApplicationTest(String input, long expected) {
+            this.input = input;
+            this.expected = expected;
+        }
+    }
+
+    public void testClosures() {
+        String input = "let newAdder = fn(x) { fn(y) { x + y }; };let addTwo = newAdder(2); addTwo(2);";
+        if (!testIntegerObject(testEval(input), 4)) {
+            return;
+        }
+        println("success");
     }
 }
