@@ -20,6 +20,7 @@ import ye.chilyn.monkey.ast.PrefixExpression;
 import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.ast.ReturnStatement;
 import ye.chilyn.monkey.ast.Statement;
+import ye.chilyn.monkey.ast.StringLiteral;
 
 public class Parser {
     private static final int LOWEST = 0;
@@ -61,6 +62,7 @@ public class Parser {
         registerPrefix(TokenType.LPAREN, parseGroupedExpression);
         registerPrefix(TokenType.IF, parseIfExpression);
         registerPrefix(TokenType.FUNCTION, parseFunctionLiteral);
+        registerPrefix(TokenType.STRING, parseStringLiteral);
         infixParseFns = new HashMap<>();
         registerInfix(TokenType.PLUS, parseInfixExpression);
         registerInfix(TokenType.MINUS, parseInfixExpression);
@@ -364,6 +366,13 @@ public class Parser {
             }
 
             return identifiers;
+        }
+    };
+
+    private PrefixParseFn parseStringLiteral = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            return new StringLiteral(curToken, curToken.getLiteral());
         }
     };
 

@@ -18,6 +18,7 @@ import ye.chilyn.monkey.ast.PrefixExpression;
 import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.ast.ReturnStatement;
 import ye.chilyn.monkey.ast.Statement;
+import ye.chilyn.monkey.ast.StringLiteral;
 import ye.chilyn.monkey.object.Boolean;
 import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Error;
@@ -27,6 +28,7 @@ import ye.chilyn.monkey.object.Null;
 import ye.chilyn.monkey.object.Object;
 import ye.chilyn.monkey.object.ObjectType;
 import ye.chilyn.monkey.object.ReturnValue;
+import ye.chilyn.monkey.object.String;
 
 public class Evaluator {
     public static final Null NULL = new Null();
@@ -95,6 +97,8 @@ public class Evaluator {
             }
 
             return applyFunction(function, args);
+        } else if (node instanceof StringLiteral) {
+            return new String(((StringLiteral) node).value);
         }
 
         return null;
@@ -137,7 +141,7 @@ public class Evaluator {
         }
     }
 
-    private Object evalPrefixExpression(String operator, Object right) {
+    private Object evalPrefixExpression(java.lang.String operator, Object right) {
         switch (operator) {
             case "!":
                 return evalBangOperatorExpression(right);
@@ -169,9 +173,11 @@ public class Evaluator {
         return new Integer(-value);
     }
 
-    private Object evalInfixExpression(String operator, Object left, Object right) {
+    private Object evalInfixExpression(java.lang.String operator, Object left, Object right) {
         if (ObjectType.INTEGER_OBJ.equals(left.type()) && ObjectType.INTEGER_OBJ.equals(right.type())) {
             return evalIntegerInfixExpression(operator, left, right);
+        } else if (ObjectType.STRING_OBJ.equals(left.type()) && ObjectType.STRING_OBJ.equals(right.type())) {
+            return evalStringInfixExpression(operator, left, right);
         } else if ("==".equals(operator)) {
             return nativeBoolToBooleanObject(left == right);
         } else if ("!=".equals(operator)) {
@@ -183,7 +189,7 @@ public class Evaluator {
         }
     }
 
-    private Object evalIntegerInfixExpression(String operator, Object left, Object right) {
+    private Object evalIntegerInfixExpression(java.lang.String operator, Object left, Object right) {
         long leftVal = ((Integer) left).value;
         long rightVal = ((Integer) right).value;
         switch (operator) {
@@ -206,6 +212,16 @@ public class Evaluator {
             default:
                 return new Error("unknown operator: " + left.type() + operator + right.type());
         }
+    }
+
+    private Object evalStringInfixExpression(java.lang.String operator, Object left, Object right) {
+        if (!"+".equals(operator)) {
+            return new Error("unknown operator: " + left.type() + operator + right.type());
+        }
+
+        java.lang.String leftValue = ((String) left).value;
+        java.lang.String rightValue = ((String) right).value;
+        return new String(leftValue + rightValue);
     }
 
     private Object evalIfExpression(IfExpression ie, Environment env) {

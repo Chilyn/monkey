@@ -28,4 +28,5 @@ public class TokenType {
     public static final String RETURN = "RETURN";
     public static final String EQ = "==";
     public static final String NOT_EQ = "!=";
+    public static final String STRING = "STRING";
 }

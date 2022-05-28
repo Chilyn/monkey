@@ -21,6 +21,7 @@ import ye.chilyn.monkey.ast.PrefixExpression;
 import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.ast.ReturnStatement;
 import ye.chilyn.monkey.ast.Statement;
+import ye.chilyn.monkey.ast.StringLiteral;
 
 public class ParserTest {
 
@@ -788,6 +789,27 @@ public class ParserTest {
         testLiteralExpression(exp.arguments.get(0), 1);
         testInfixExpression(exp.arguments.get(1), 2, "*", 3);
         testInfixExpression(exp.arguments.get(2), 4, "+", 5);
+        println("success");
+    }
+
+    public void testStringLiteralExpression() {
+        String input = "\"hello world\";";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof StringLiteral)) {
+            println("exp not *ast.StringLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        StringLiteral literal = (StringLiteral) stmt.expression;
+        if (!"hello world".equals(literal.value)) {
+            println("literal.Value not hello world. got=" + literal.value);
+            return;
+        }
+
         println("success");
     }
 }

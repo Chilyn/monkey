@@ -1,5 +1,7 @@
 package ye.chilyn.monkey.object;
 
+import java.lang.String;
+
 public class ReturnValue implements Object {
     public Object value;
 

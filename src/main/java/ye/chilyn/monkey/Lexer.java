@@ -112,6 +112,9 @@ public class Lexer {
             case "}":
                 tok = new Token(TokenType.RBRACE, ch);
                 break;
+            case "\"":
+                tok = new Token(TokenType.STRING, readString());
+                break;
             case "":
                 tok = new Token(TokenType.EOF, ch);
                 break;
@@ -132,6 +135,14 @@ public class Lexer {
 
         readChar();
         return tok;
+    }
+
+    private String readString() {
+        int position = this.position + 1;
+        do {
+            readChar();
+        } while (!"\"".equals(ch));
+        return input.substring(position, this.position);
     }
 
     private void readChar() {

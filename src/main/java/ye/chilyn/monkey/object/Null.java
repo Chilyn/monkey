@@ -1,5 +1,7 @@
 package ye.chilyn.monkey.object;
 
+import java.lang.String;
+
 public class Null implements Object {
     @Override
     public String type() {

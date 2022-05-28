@@ -1,5 +1,7 @@
 package ye.chilyn.monkey.test;
 
+import java.lang.String;
+
 import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Parser;
 import ye.chilyn.monkey.Evaluator;
@@ -229,15 +231,16 @@ public class EvaluatorTest {
 
     public void testErrorHandling() {
         ErrorHandlingTest[] tests = {
-                new ErrorHandlingTest("foobar", "identifier not found: foobar"),
-                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
-                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
-                new ErrorHandlingTest("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN"),
-                new ErrorHandlingTest("-true", "unknown operator: -BOOLEAN"),
-                new ErrorHandlingTest("true + false;", "unknown operator: BOOLEAN + BOOLEAN"),
-                new ErrorHandlingTest("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN"),
-                new ErrorHandlingTest("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"),
-                new ErrorHandlingTest("if (10 > 1) { if (10 > 1) { return true + false; }return 1; }", "unknown operator: BOOLEAN + BOOLEAN"),
+//                new ErrorHandlingTest("foobar", "identifier not found: foobar"),
+//                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
+//                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
+//                new ErrorHandlingTest("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN"),
+//                new ErrorHandlingTest("-true", "unknown operator: -BOOLEAN"),
+//                new ErrorHandlingTest("true + false;", "unknown operator: BOOLEAN + BOOLEAN"),
+//                new ErrorHandlingTest("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN"),
+//                new ErrorHandlingTest("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"),
+//                new ErrorHandlingTest("if (10 > 1) { if (10 > 1) { return true + false; }return 1; }", "unknown operator: BOOLEAN + BOOLEAN"),
+                new ErrorHandlingTest("\"Hello\" - \"World\"", "unknown operator: STRING - STRING"),
         };
 
         for (ErrorHandlingTest tt : tests) {
@@ -368,6 +371,38 @@ public class EvaluatorTest {
         if (!testIntegerObject(testEval(input), 4)) {
             return;
         }
+        println("success");
+    }
+
+    public void testStringLiteral() {
+        String input = "\"Hello World!\"";
+        Object evaluated = testEval(input);
+        if (!(evaluated instanceof ye.chilyn.monkey.object.String)) {
+            println("object is not String. got=" + evaluated.type() + "(" + evaluated.inspect() + ")");
+        }
+
+        ye.chilyn.monkey.object.String str = (ye.chilyn.monkey.object.String) evaluated;
+        if (!"Hello World!".equals(str.value)) {
+            println("String has wrong value. got=" + str.value);
+            return;
+        }
+        println("success");
+    }
+
+    public void testStringConcatenation() {
+        String input = "\"Hello\" + \" \" + \"World!\"";
+        Object evaluated = testEval(input);
+        if (!(evaluated instanceof ye.chilyn.monkey.object.String)) {
+            println("object is not String. got=" + evaluated.type() + "(" + evaluated.inspect() + ")");
+            return;
+        }
+
+        ye.chilyn.monkey.object.String str = (ye.chilyn.monkey.object.String) evaluated;
+        if (!"Hello World!".equals(str.value)) {
+            println("String has wrong value. got=" + str.value);
+            return;
+        }
+
         println("success");
     }
 }

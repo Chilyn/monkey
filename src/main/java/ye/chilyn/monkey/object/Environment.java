@@ -2,6 +2,7 @@ package ye.chilyn.monkey.object;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.lang.String;
 
 public class Environment {
    private Map<String, Object> store;

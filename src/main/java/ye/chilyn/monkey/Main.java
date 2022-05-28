@@ -16,12 +16,12 @@ import ye.chilyn.monkey.test.ParserTest;
 
 public class Main {
     public static void main(String[] args) {
-//        LexerTest lexerTest = new LexerTest();
+        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
 //        startREPL();
 
-//        ParserTest parserTest = new ParserTest();
+        ParserTest parserTest = new ParserTest();
 //        parserTest.testLetStatements();
 //        parserTest.testReturnStatements();
 //        parserTest.testIdentifierExpression();
@@ -35,6 +35,7 @@ public class Main {
 //        parserTest.testFunctionLiteralParsing();
 //        parserTest.testFunctionParameterParsing();
 //        parserTest.testCallExpressionParsing();
+//        parserTest.testStringLiteralExpression();
 
 //        ASTTest test = new ASTTest();
 //        test.testString();
@@ -48,7 +49,9 @@ public class Main {
 //        test.testErrorHandling();
 //        test.testFunctionObject();
 //        test.testFunctionApplication();
-        test.testClosures();
+//        test.testClosures();
+//        test.testStringLiteral();
+        test.testStringConcatenation();
     }
 
     public static void startREPL() {

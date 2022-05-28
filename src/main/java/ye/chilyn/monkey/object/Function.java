@@ -1,6 +1,7 @@
 package ye.chilyn.monkey.object;
 
 import java.util.List;
+import java.lang.String;
 
 import ye.chilyn.monkey.ast.BlockStatement;
 import ye.chilyn.monkey.ast.Identifier;
