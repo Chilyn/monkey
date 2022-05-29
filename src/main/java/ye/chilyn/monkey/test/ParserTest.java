@@ -1,19 +1,24 @@
 package ye.chilyn.monkey.test;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static ye.chilyn.monkey.Printer.print;
 import static ye.chilyn.monkey.Printer.println;
 
 import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Parser;
+import ye.chilyn.monkey.ast.ArrayLiteral;
 import ye.chilyn.monkey.ast.Boolean;
 import ye.chilyn.monkey.ast.CallExpression;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
 import ye.chilyn.monkey.ast.FunctionLiteral;
+import ye.chilyn.monkey.ast.HashLiteral;
 import ye.chilyn.monkey.ast.Identifier;
 import ye.chilyn.monkey.ast.IfExpression;
+import ye.chilyn.monkey.ast.IndexExpression;
 import ye.chilyn.monkey.ast.InfixExpression;
 import ye.chilyn.monkey.ast.IntegerLiteral;
 import ye.chilyn.monkey.ast.LetStatement;
@@ -79,7 +84,7 @@ public class ParserTest {
             println(error);
         }
 
-        System.exit(0);
+//        System.exit(0);
     }
 
     public boolean testLetStatement(Statement s, String name) {
@@ -444,6 +449,8 @@ public class ParserTest {
 
     public void testOperatorPrecedenceParsing() {
         OperatorPrecedenceTest[] tests = {
+                new OperatorPrecedenceTest("a * [1, 2, 3, 4][b * c] * d", "((a * ([1, 2, 3, 4][(b * c)])) * d)"),
+                new OperatorPrecedenceTest("add(a * b[2], b[1], 2 * [1, 2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))"),
                 new OperatorPrecedenceTest("a + add(b * c) + d", "((a + add((b * c))) + d)"),
                 new OperatorPrecedenceTest("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"),
                 new OperatorPrecedenceTest("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))"),
@@ -467,7 +474,6 @@ public class ParserTest {
                 new OperatorPrecedenceTest("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
                 new OperatorPrecedenceTest("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
                 new OperatorPrecedenceTest("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
-                new OperatorPrecedenceTest("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
                 new OperatorPrecedenceTest("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
         };
 
@@ -800,7 +806,7 @@ public class ParserTest {
         checkParserErrors(parser);
         ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
         if (!(stmt.expression instanceof StringLiteral)) {
-            println("exp not *ast.StringLiteral. got=" + stmt.getClass().getName());
+            println("exp not StringLiteral. got=" + stmt.getClass().getName());
             return;
         }
 
@@ -811,5 +817,258 @@ public class ParserTest {
         }
 
         println("success");
+    }
+
+    public void testParsingArrayLiterals() {
+        String input = "[1, 2 * 2, 3 + 3]";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof ArrayLiteral)) {
+            println("exp not ArrayLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        ArrayLiteral array = (ArrayLiteral) stmt.expression;
+        if (array.elements.size() != 3) {
+            println("len(array.Elements) not 3. got=" + array.elements.size());
+            return;
+        }
+
+        testIntegerLiteral(array.elements.get(0), 1);
+        testInfixExpression(array.elements.get(1), 2, "*", 2);
+        testInfixExpression(array.elements.get(2), 3, "+", 3);
+        println("success");
+    }
+
+    public void testParsingIndexExpressions() {
+        String input = "myArray[1 + 1]";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof IndexExpression)) {
+            println("exp not IndexExpression. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        IndexExpression indexExp = (IndexExpression) stmt.expression;
+        if (!testIdentifier(indexExp.left, "myArray")) {
+            return;
+        }
+
+        if (!testInfixExpression(indexExp.index, 1, "+", 1)) {
+            return;
+        }
+
+        println("success");
+    }
+
+    public void testParsingHashLiteralsStringKeys() {
+        String input = "{\"one\": 1, \"two\": 2, \"three\": 3}";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof HashLiteral)) {
+            println("exp not HashLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        HashLiteral hash = (HashLiteral) stmt.expression;
+        if (hash.pairs.size() != 3) {
+            println("hash.Pairs has wrong length. got=" + hash.pairs.size());
+            return;
+        }
+
+        Map<String, Long> expected = new HashMap<String, Long>(){{
+            put("one", 1L);
+            put("two", 2L);
+            put("three", 3L);
+        }};
+
+        for (Map.Entry<Expression, Expression> entry : hash.pairs.entrySet()) {
+            if (!(entry.getKey() instanceof StringLiteral)) {
+                println("key is not ast.StringLiteral. got=" + entry.getKey().getClass().getName());
+                continue;
+            }
+
+            StringLiteral literal = (StringLiteral) entry.getKey();
+            long expectedValue = expected.get(literal.string());
+            testIntegerLiteral(entry.getValue(), expectedValue);
+        }
+
+        println("success");
+    }
+
+    public void testParsingHashLiteralsIntegerKeys() {
+        String input = "{1: 1, 2: 2, 3: 3}";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof HashLiteral)) {
+            println("exp not HashLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        HashLiteral hash = (HashLiteral) stmt.expression;
+        if (hash.pairs.size() != 3) {
+            println("hash.Pairs has wrong length. got=" + hash.pairs.size());
+            return;
+        }
+
+        Map<Long, Long> expected = new HashMap<Long, Long>(){{
+            put(1L, 1L);
+            put(2L, 2L);
+            put(3L, 3L);
+        }};
+
+        for (Map.Entry<Expression, Expression> entry : hash.pairs.entrySet()) {
+            if (!(entry.getKey() instanceof IntegerLiteral)) {
+                println("key is not ast.IntegerLiteral. got=" + entry.getKey().getClass().getName());
+                continue;
+            }
+
+            IntegerLiteral literal = (IntegerLiteral) entry.getKey();
+            long expectedValue = expected.get(literal.value);
+            testIntegerLiteral(entry.getValue(), expectedValue);
+        }
+
+        println("success");
+    }
+
+    public void testParsingHashLiteralsBooleanKeys() {
+        String input = "{true: 1, false: 2}";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof HashLiteral)) {
+            println("exp not HashLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        HashLiteral hash = (HashLiteral) stmt.expression;
+        if (hash.pairs.size() != 2) {
+            println("hash.Pairs has wrong length. got=" + hash.pairs.size());
+            return;
+        }
+
+        Map<java.lang.Boolean, Long> expected = new HashMap<java.lang.Boolean, Long>(){{
+            put(true, 1L);
+            put(false, 2L);
+        }};
+
+        for (Map.Entry<Expression, Expression> entry : hash.pairs.entrySet()) {
+            if (!(entry.getKey() instanceof Boolean)) {
+                println("key is not ast.Boolean. got=" + entry.getKey().getClass().getName());
+                continue;
+            }
+
+            Boolean bool = (Boolean) entry.getKey();
+            long expectedValue = expected.get(bool.value);
+            testIntegerLiteral(entry.getValue(), expectedValue);
+        }
+
+        println("success");
+    }
+
+    public void testParsingEmptyHashLiteral() {
+        String input = "{}";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof HashLiteral)) {
+            println("exp not HashLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        HashLiteral hash = (HashLiteral) stmt.expression;
+        if (hash.pairs.size() != 0) {
+            println("hash.Pairs has wrong length. got=" + hash.pairs.size());
+            return;
+        }
+
+        println("success");
+    }
+
+    public void testParsingHashLiteralsWithExpressions() {
+        String input = "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}";
+        Lexer lexer = new Lexer(input);
+        Parser parser = new Parser(lexer);
+        Program program = parser.parseProgram();
+        checkParserErrors(parser);
+
+        ExpressionStatement stmt = (ExpressionStatement) program.statements.get(0);
+        if (!(stmt.expression instanceof HashLiteral)) {
+            println("exp not HashLiteral. got=" + stmt.getClass().getName());
+            return;
+        }
+
+        HashLiteral hash = (HashLiteral) stmt.expression;
+        if (hash.pairs.size() != 3) {
+            println("hash.Pairs has wrong length. got=" + hash.pairs.size());
+            return;
+        }
+
+        Map<String, HashTestFunc> tests = new HashMap<String, HashTestFunc>(){{
+            put("one", new HashTestFunc(){
+
+                @Override
+                public void func(Expression e) {
+                    testInfixExpression(e, 0, "+", 1);
+                }
+            });
+            put("two", new HashTestFunc(){
+
+                @Override
+                public void func(Expression e) {
+                    testInfixExpression(e, 10, "-", 8);
+                }
+            });
+            put("three", new HashTestFunc(){
+
+                @Override
+                public void func(Expression e) {
+                    testInfixExpression(e, 15, "/", 5);
+                }
+            });
+        }};
+
+        for (Map.Entry<Expression, Expression> entry : hash.pairs.entrySet()) {
+            if (!(entry.getKey() instanceof StringLiteral)) {
+                println("key is not ast.StringLiteral. got=" + entry.getKey().getClass().getName());
+                continue;
+            }
+
+            StringLiteral literal = (StringLiteral) entry.getKey();
+            HashTestFunc testFunc = tests.get(literal.string());
+            if (testFunc == null) {
+                println("No test function for key " + literal.string() + " found");
+                continue;
+            }
+
+            testFunc.func(entry.getValue());
+        }
+
+        println("success");
+    }
+
+    private interface HashTestFunc {
+        void func(Expression e);
     }
 }

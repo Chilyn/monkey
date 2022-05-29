@@ -19,7 +19,7 @@ public class LexerTest {
                 "!-/*5;" +
                 "5 < 10 > 5;" +
                 "if (5 < 10) { return true; } else { return false; }" +
-                "10 == 10;10 != 9;\"foobar\" \"foo bar\"\n";
+                "10 == 10;10 != 9;\"foobar\" \"foo bar\"[1, 2];{\"foo\": \"bar\"}\n";
         print(input);
         Token[] tests = {
                 new Token(TokenType.LET, "let"),
@@ -97,6 +97,17 @@ public class LexerTest {
                 new Token(TokenType.SEMICOLON, ";"),
                 new Token(TokenType.STRING, "foobar"),
                 new Token(TokenType.STRING, "foo bar"),
+                new Token(TokenType.LBRACKET, "["),
+                new Token(TokenType.INT, "1"),
+                new Token(TokenType.COMMA, ","),
+                new Token(TokenType.INT, "2"),
+                new Token(TokenType.RBRACKET, "]"),
+                new Token(TokenType.SEMICOLON, ";"),
+                new Token(TokenType.LBRACE, "{"),
+                new Token(TokenType.STRING, "foo"),
+                new Token(TokenType.COLON, ":"),
+                new Token(TokenType.STRING, "bar"),
+                new Token(TokenType.RBRACE, "}"),
                 new Token(TokenType.EOF, ""),
         };
         Lexer lexer = new Lexer(input);

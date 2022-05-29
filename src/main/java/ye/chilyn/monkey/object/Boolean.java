@@ -2,7 +2,7 @@ package ye.chilyn.monkey.object;
 
 import java.lang.String;
 
-public class Boolean implements Object {
+public class Boolean implements Object, HashTable {
     public boolean value;
 
     public Boolean(boolean value) {
@@ -17,5 +17,10 @@ public class Boolean implements Object {
     @Override
     public String inspect() {
         return String.valueOf(value);
+    }
+
+    @Override
+    public HashKey hashKey() {
+        return new HashKey(type(), value ? 1 : 0);
     }
 }

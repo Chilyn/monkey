@@ -27,7 +27,7 @@ public class Function implements Object {
         StringBuilder sb = new StringBuilder();
         sb.append("fn(");
         for (int i = 0; i < parameters.size(); i++) {
-            sb.append(parameters.get(i));
+            sb.append(parameters.get(i).string());
             if (i != parameters.size() - 1) {
                 sb.append(", ");
             }

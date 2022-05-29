@@ -1,15 +1,23 @@
 package ye.chilyn.monkey;
 
-import java.util.ArrayList;
-import java.util.List;
+import static ye.chilyn.monkey.Printer.println;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+
+import ye.chilyn.monkey.ast.ArrayLiteral;
 import ye.chilyn.monkey.ast.BlockStatement;
 import ye.chilyn.monkey.ast.CallExpression;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
 import ye.chilyn.monkey.ast.FunctionLiteral;
+import ye.chilyn.monkey.ast.HashLiteral;
 import ye.chilyn.monkey.ast.Identifier;
 import ye.chilyn.monkey.ast.IfExpression;
+import ye.chilyn.monkey.ast.IndexExpression;
 import ye.chilyn.monkey.ast.InfixExpression;
 import ye.chilyn.monkey.ast.IntegerLiteral;
 import ye.chilyn.monkey.ast.LetStatement;
@@ -19,10 +27,17 @@ import ye.chilyn.monkey.ast.Program;
 import ye.chilyn.monkey.ast.ReturnStatement;
 import ye.chilyn.monkey.ast.Statement;
 import ye.chilyn.monkey.ast.StringLiteral;
+import ye.chilyn.monkey.object.Array;
 import ye.chilyn.monkey.object.Boolean;
+import ye.chilyn.monkey.object.Builtin;
+import ye.chilyn.monkey.object.BuiltinFunction;
 import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Error;
 import ye.chilyn.monkey.object.Function;
+import ye.chilyn.monkey.object.Hash;
+import ye.chilyn.monkey.object.HashKey;
+import ye.chilyn.monkey.object.HashPair;
+import ye.chilyn.monkey.object.HashTable;
 import ye.chilyn.monkey.object.Integer;
 import ye.chilyn.monkey.object.Null;
 import ye.chilyn.monkey.object.Object;
@@ -32,8 +47,101 @@ import ye.chilyn.monkey.object.String;
 
 public class Evaluator {
     public static final Null NULL = new Null();
-    private static final Boolean TRUE = new Boolean(true);
-    private static final Boolean FALSE = new Boolean(false);
+    public static final Boolean TRUE = new Boolean(true);
+    public static final Boolean FALSE = new Boolean(false);
+    private Map<java.lang.String, Builtin> builtins = new HashMap<java.lang.String, Builtin>(){{
+        put("len", new Builtin(new BuiltinFunction() {
+            @Override
+            public Object builtinFunction(Object... args) {
+                if (args.length != 1) {
+                    return new Error("wrong number of arguments. got=" + args.length + ", want=1");
+                }
+
+                if (args[0] instanceof String) {
+                    return new Integer(((String) args[0]).value.length());
+                }
+
+                if (args[0] instanceof Array) {
+                    return new Integer(((Array) args[0]).elements.size());
+                }
+
+
+                return new Error("argument to `len` not supported, got " + args[0].type());
+            }
+        }));
+        put("first", new Builtin(new BuiltinFunction() {
+            @Override
+            public Object builtinFunction(Object... args) {
+                if (args.length != 1 || !(args[0] instanceof Array)) {
+                    return new Error("argument to `first` must be ARRAY, got " + args[0].type());
+                }
+
+                Array arr = (Array) args[0];
+                if (arr.elements.size() > 0) {
+                    return arr.elements.get(0);
+                }
+
+                return NULL;
+            }
+        }));
+        put("last", new Builtin(new BuiltinFunction() {
+            @Override
+            public Object builtinFunction(Object... args) {
+                if (args.length != 1 || !(args[0] instanceof Array)) {
+                    return new Error("argument to `last` must be ARRAY, got " + args[0].type());
+                }
+
+                Array arr = (Array) args[0];
+                int length = arr.elements.size();
+                if (length > 0) {
+                    return arr.elements.get(length - 1);
+                }
+
+                return NULL;
+            }
+        }));
+        put("rest", new Builtin(new BuiltinFunction() {
+            @Override
+            public Object builtinFunction(Object... args) {
+                if (args.length != 1 || !(args[0] instanceof Array)) {
+                    return new Error("argument to `rest` must be ARRAY, got " + args[0].type());
+                }
+
+                Array arr = (Array) args[0];
+                int length = arr.elements.size();
+                if (length > 0) {
+                    List<Object> newElements = new ArrayList<>(arr.elements);
+                    newElements.remove(0);
+                    return new Array(newElements);
+                }
+
+                return NULL;
+            }
+        }));
+        put("push", new Builtin(new BuiltinFunction() {
+            @Override
+            public Object builtinFunction(Object... args) {
+                if (args.length != 2 || !(args[0] instanceof Array)) {
+                    return new Error("argument to `push` must be ARRAY, got " + args[0].type());
+                }
+
+                Array arr = (Array) args[0];
+                List<Object> newElements = new ArrayList<>(arr.elements);
+                newElements.add(args[1]);
+                return new Array(newElements);
+            }
+        }));
+        put("puts", new Builtin(new BuiltinFunction() {
+            @Override
+            public Object builtinFunction(Object... args) {
+                for (Object arg : args) {
+                    println(arg.inspect());
+                }
+
+                return NULL;
+            }
+        }));
+    }};
 
     public Object eval(Node node, Environment env) {
         if (node instanceof Program) {
@@ -99,6 +207,26 @@ public class Evaluator {
             return applyFunction(function, args);
         } else if (node instanceof StringLiteral) {
             return new String(((StringLiteral) node).value);
+        } else if (node instanceof ArrayLiteral) {
+            List<Object> elements = evalExpressions(((ArrayLiteral) node).elements, env);
+            if (elements.size() == 1 && isError(elements.get(0))) {
+                return elements.get(0);
+            }
+
+            return new Array(elements);
+        } else if (node instanceof IndexExpression) {
+            Object left = eval(((IndexExpression) node).left, env);
+            if (isError(left)) {
+                return left;
+            }
+
+            Object index = eval(((IndexExpression) node).index, env);
+            if (isError(index)) {
+                return index;
+            }
+            return evalIndexExpression(left, index);
+        } else if (node instanceof HashLiteral) {
+            return evalHashLiteral((HashLiteral) node, env);
         }
 
         return null;
@@ -174,18 +302,20 @@ public class Evaluator {
     }
 
     private Object evalInfixExpression(java.lang.String operator, Object left, Object right) {
-        if (ObjectType.INTEGER_OBJ.equals(left.type()) && ObjectType.INTEGER_OBJ.equals(right.type())) {
+        java.lang.String leftType = left == null ? null: left.type();
+        java.lang.String rightType = right == null ? null: right.type();
+        if (ObjectType.INTEGER_OBJ.equals(leftType) && ObjectType.INTEGER_OBJ.equals(rightType)) {
             return evalIntegerInfixExpression(operator, left, right);
-        } else if (ObjectType.STRING_OBJ.equals(left.type()) && ObjectType.STRING_OBJ.equals(right.type())) {
+        } else if (ObjectType.STRING_OBJ.equals(leftType) && ObjectType.STRING_OBJ.equals(rightType)) {
             return evalStringInfixExpression(operator, left, right);
         } else if ("==".equals(operator)) {
             return nativeBoolToBooleanObject(left == right);
         } else if ("!=".equals(operator)) {
             return nativeBoolToBooleanObject(left != right);
-        } else if (!left.type().equals(right.type())) {
-            return new Error("type mismatch: " + left.type() + " " + operator + " " + right.type());
+        } else if (left != null && !left.type().equals(rightType)) {
+            return new Error("type mismatch: " + left.type() + " " + operator + " " + rightType);
         } else {
-            return new Error("unknown operator: " + left.type() + " " + operator + " " + right.type());
+            return new Error("unknown operator: " + leftType + " " + operator + " " + rightType);
         }
     }
 
@@ -241,11 +371,16 @@ public class Evaluator {
 
     private Object evalIdentifier(Identifier node, Environment env) {
         Object val = env.get(node.value);
-        if (val == null) {
-            return new Error("identifier not found: " + node.value);
+        if (val != null) {
+            return val;
         }
 
-        return val;
+        Builtin builtin = builtins.get(node.value);
+        if (builtin != null) {
+            return builtin;
+        }
+
+        return new Error("identifier not found: " + node.value);
     }
 
     private List<Object> evalExpressions(List<Expression> exps, Environment env) {
@@ -264,14 +399,18 @@ public class Evaluator {
     }
 
     private Object applyFunction(Object fn, List<Object> args) {
-        if (!(fn instanceof Function)) {
-            return new Error("not a function: " + fn.type());
+        if (fn instanceof Function) {
+            Function function = (Function) fn;
+            Environment extendedEnv = extendFunctionEnv(function, args);
+            Object evaluated = eval(function.body, extendedEnv);
+            return unwrapReturnValue(evaluated);
         }
 
-        Function function = (Function) fn;
-        Environment extendedEnv = extendFunctionEnv(function, args);
-        Object evaluated = eval(function.body, extendedEnv);
-        return unwrapReturnValue(evaluated);
+        if (fn instanceof Builtin) {
+            return ((Builtin) fn).fn.builtinFunction(args.toArray(new Object[0]));
+        }
+
+        return new Error("not a function: " + fn.type());
     }
 
     private Environment extendFunctionEnv(Function fn, List<Object> args) {
@@ -282,6 +421,71 @@ public class Evaluator {
         }
 
         return env;
+    }
+
+    private Object evalIndexExpression(Object left, Object index) {
+        if (ObjectType.ARRAY_OBJ.equals(left.type()) &&
+            ObjectType.INTEGER_OBJ.equals(index.type())) {
+            return evalArrayIndexExpression(left, index);
+        }
+
+        if (ObjectType.HASH_OBJ.equals(left.type())) {
+            return evalHashIndexExpression(left, index);
+        }
+
+        return new Error("index operator not supported: " + left.type());
+    }
+
+    private Object evalArrayIndexExpression(Object array, Object index) {
+        Array arrayObject = (Array) array;
+        int idx = (int) ((Integer) index).value;
+        int max = arrayObject.elements.size() - 1;
+        if (idx < 0 || idx > max) {
+            return NULL;
+        }
+
+        return arrayObject.elements.get(idx);
+    }
+
+    private Object evalHashLiteral(HashLiteral node, Environment env) {
+        Map<HashKey, HashPair> pairs = new HashMap<>();
+        for (Map.Entry<Expression, Expression> entry : node.pairs.entrySet()) {
+            Expression keyNode = entry.getKey();
+            Expression valueNode = entry.getValue();
+            Object key = eval(keyNode, env);
+            if (isError(key)) {
+                return key;
+            }
+
+            if (!(key instanceof HashTable)) {
+                return new Error("unusable as hash key: " + key.type());
+            }
+
+            Object value = eval(valueNode, env);
+            if (isError(value)) {
+                return value;
+            }
+
+            HashKey hashed = ((HashTable) key).hashKey();
+            pairs.put(hashed, new HashPair(key, value));
+        }
+
+        return new Hash(pairs);
+    }
+
+    private Object evalHashIndexExpression(Object hash, Object index) {
+        Hash hashObject = (Hash) hash;
+        if (!(index instanceof HashTable)) {
+            return new Error("unusable as hash key: " + index.type());
+        }
+
+        HashKey key = ((HashTable) index).hashKey();
+        HashPair pair = hashObject.pairs.get(key);
+        if (pair == null) {
+            return NULL;
+        }
+
+        return pair.value;
     }
 
     private Object unwrapReturnValue(Object obj) {

@@ -2,7 +2,7 @@ package ye.chilyn.monkey.object;
 
 import java.lang.String;
 
-public class Integer implements Object {
+public class Integer implements Object, HashTable {
     public long value;
 
     public Integer(long value) {
@@ -17,5 +17,10 @@ public class Integer implements Object {
     @Override
     public String inspect() {
         return String.valueOf(value);
+    }
+
+    @Override
+    public HashKey hashKey() {
+        return new HashKey(type(), (int) value);
     }
 }

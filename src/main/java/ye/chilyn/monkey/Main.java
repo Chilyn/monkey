@@ -12,16 +12,15 @@ import ye.chilyn.monkey.object.Object;
 import ye.chilyn.monkey.test.ASTTest;
 import ye.chilyn.monkey.test.EvaluatorTest;
 import ye.chilyn.monkey.test.LexerTest;
+import ye.chilyn.monkey.test.ObjectTest;
 import ye.chilyn.monkey.test.ParserTest;
 
 public class Main {
     public static void main(String[] args) {
-        LexerTest lexerTest = new LexerTest();
+//        LexerTest lexerTest = new LexerTest();
 //        lexerTest.testNextToken();
 
-//        startREPL();
-
-        ParserTest parserTest = new ParserTest();
+//        ParserTest parserTest = new ParserTest();
 //        parserTest.testLetStatements();
 //        parserTest.testReturnStatements();
 //        parserTest.testIdentifierExpression();
@@ -36,22 +35,39 @@ public class Main {
 //        parserTest.testFunctionParameterParsing();
 //        parserTest.testCallExpressionParsing();
 //        parserTest.testStringLiteralExpression();
+//        parserTest.testParsingArrayLiterals();
+//        parserTest.testParsingIndexExpressions();
+//        parserTest.testParsingEmptyHashLiteral();
+//        parserTest.testParsingHashLiteralsStringKeys();
+//        parserTest.testParsingHashLiteralsBooleanKeys();
+//        parserTest.testParsingHashLiteralsIntegerKeys();
+//        parserTest.testParsingHashLiteralsWithExpressions();
 
 //        ASTTest test = new ASTTest();
 //        test.testString();
 
-        EvaluatorTest test = new EvaluatorTest();
-//        test.testEvalIntegerExpression();
-//        test.testEvalBooleanExpression();
-//        test.testBangOperator();
-//        test.testIfElseExpressions();
-//        test.testReturnStatements();
-//        test.testErrorHandling();
-//        test.testFunctionObject();
-//        test.testFunctionApplication();
-//        test.testClosures();
-//        test.testStringLiteral();
-        test.testStringConcatenation();
+//        EvaluatorTest evaluatorTest = new EvaluatorTest();
+//        evaluatorTest.testEvalIntegerExpression();
+//        evaluatorTest.testEvalBooleanExpression();
+//        evaluatorTest.testBangOperator();
+//        evaluatorTest.testIfElseExpressions();
+//        evaluatorTest.testReturnStatements();
+//        evaluatorTest.testErrorHandling();
+//        evaluatorTest.testFunctionObject();
+//        evaluatorTest.testFunctionApplication();
+//        evaluatorTest.testClosures();
+//        evaluatorTest.testStringLiteral();
+//        evaluatorTest.testStringConcatenation();
+//        evaluatorTest.testBuiltinFunctions();
+//        evaluatorTest.testArrayLiterals();
+//        evaluatorTest.testArrayIndexExpressions();
+//        evaluatorTest.testHashLiterals();
+//        evaluatorTest.testHashIndexExpressions();
+
+//        ObjectTest objectTest = new ObjectTest();
+//        objectTest.testStringHashKey();
+
+        startREPL();
     }
 
     public static void startREPL() {

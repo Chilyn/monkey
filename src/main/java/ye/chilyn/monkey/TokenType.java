@@ -29,4 +29,7 @@ public class TokenType {
     public static final String EQ = "==";
     public static final String NOT_EQ = "!=";
     public static final String STRING = "STRING";
+    public static final String LBRACKET = "[";
+    public static final String RBRACKET = "]";
+    public static final String COLON = ":";
 }

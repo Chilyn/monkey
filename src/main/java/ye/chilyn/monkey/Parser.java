@@ -5,14 +5,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ye.chilyn.monkey.ast.ArrayLiteral;
 import ye.chilyn.monkey.ast.BlockStatement;
 import ye.chilyn.monkey.ast.Boolean;
 import ye.chilyn.monkey.ast.CallExpression;
 import ye.chilyn.monkey.ast.Expression;
 import ye.chilyn.monkey.ast.ExpressionStatement;
 import ye.chilyn.monkey.ast.FunctionLiteral;
+import ye.chilyn.monkey.ast.HashLiteral;
 import ye.chilyn.monkey.ast.Identifier;
 import ye.chilyn.monkey.ast.IfExpression;
+import ye.chilyn.monkey.ast.IndexExpression;
 import ye.chilyn.monkey.ast.InfixExpression;
 import ye.chilyn.monkey.ast.IntegerLiteral;
 import ye.chilyn.monkey.ast.LetStatement;
@@ -47,6 +50,7 @@ public class Parser {
         put(TokenType.SLASH, PRODUCT);
         put(TokenType.ASTERISK, PRODUCT);
         put(TokenType.LPAREN, CALL);
+        put(TokenType.LBRACKET, INDEX);
     }};
 
     public Parser(Lexer lexer) {
@@ -63,6 +67,8 @@ public class Parser {
         registerPrefix(TokenType.IF, parseIfExpression);
         registerPrefix(TokenType.FUNCTION, parseFunctionLiteral);
         registerPrefix(TokenType.STRING, parseStringLiteral);
+        registerPrefix(TokenType.LBRACKET, parseArrayLiteral);
+        registerPrefix(TokenType.LBRACE, parseHashLiteral);
         infixParseFns = new HashMap<>();
         registerInfix(TokenType.PLUS, parseInfixExpression);
         registerInfix(TokenType.MINUS, parseInfixExpression);
@@ -73,6 +79,7 @@ public class Parser {
         registerInfix(TokenType.LT, parseInfixExpression);
         registerInfix(TokenType.GT, parseInfixExpression);
         registerInfix(TokenType.LPAREN,  parseCallExpression);
+        registerInfix(TokenType.LBRACKET, parseIndexExpression);
         nextToken();
         nextToken();
     }
@@ -376,6 +383,43 @@ public class Parser {
         }
     };
 
+    private PrefixParseFn parseArrayLiteral = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            ArrayLiteral array = new ArrayLiteral(curToken);
+            array.elements = parseExpressionList(TokenType.RBRACKET);
+            return array;
+        }
+    };
+
+    private PrefixParseFn parseHashLiteral = new PrefixParseFn() {
+        @Override
+        public Expression prefixParseFn() {
+            HashLiteral hash = new HashLiteral(curToken);
+            hash.pairs = new HashMap<>();
+            while (!peekTokenIs(TokenType.RBRACE)) {
+                nextToken();
+                Expression key = parseExpression(LOWEST);
+                if (!expectPeek(TokenType.COLON)) {
+                    return null;
+                }
+
+                nextToken();
+                Expression value = parseExpression(LOWEST);
+                hash.pairs.put(key, value);
+
+                if (!peekTokenIs(TokenType.RBRACE) && !expectPeek(TokenType.COMMA)) {
+                    return null;
+                }
+            }
+
+            if (!expectPeek(TokenType.RBRACE)) {
+                return null;
+            }
+            return hash;
+        }
+    };
+
     private InfixParseFn parseInfixExpression = new InfixParseFn() {
         @Override
         public Expression infixParseFn(Expression left) {
@@ -395,7 +439,7 @@ public class Parser {
         @Override
         public Expression infixParseFn(Expression function) {
             CallExpression expression = new CallExpression(curToken, function);
-            expression.arguments = parseCallArguments();
+            expression.arguments = parseExpressionList(TokenType.RPAREN);
             return expression;
         }
 
@@ -420,4 +464,39 @@ public class Parser {
             return args;
         }
     };
+
+    private InfixParseFn parseIndexExpression = new InfixParseFn() {
+        @Override
+        public Expression infixParseFn(Expression left) {
+            IndexExpression exp = new IndexExpression(curToken, left);
+            nextToken();
+            exp.index = parseExpression(LOWEST);
+            if (!expectPeek(TokenType.RBRACKET)) {
+                return null;
+            }
+            return exp;
+        }
+    };
+
+    private List<Expression> parseExpressionList(String end) {
+        List<Expression> list = new ArrayList<>();
+        if (peekTokenIs(end)) {
+            nextToken();
+            return list;
+        }
+
+        nextToken();
+        list.add(parseExpression(LOWEST));
+        while (peekTokenIs(TokenType.COMMA)) {
+            nextToken();
+            nextToken();
+            list.add(parseExpression(LOWEST));
+        }
+
+        if (!expectPeek(end)) {
+            return null;
+        }
+
+        return list;
+    }
 }

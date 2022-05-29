@@ -1,6 +1,6 @@
 package ye.chilyn.monkey.object;
 
-public class String implements Object {
+public class String implements Object, HashTable {
    public java.lang.String value;
 
    public String(java.lang.String value) {
@@ -15,5 +15,10 @@ public class String implements Object {
    @Override
    public java.lang.String inspect() {
       return value;
+   }
+
+   @Override
+   public HashKey hashKey() {
+      return new HashKey(type(), value.hashCode());
    }
 }

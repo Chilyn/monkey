@@ -115,6 +115,15 @@ public class Lexer {
             case "\"":
                 tok = new Token(TokenType.STRING, readString());
                 break;
+            case "[":
+                tok = new Token(TokenType.LBRACKET, ch);
+                break;
+            case "]":
+                tok = new Token(TokenType.RBRACKET, ch);
+                break;
+            case ":":
+                tok = new Token(TokenType.COLON, ch);
+                break;
             case "":
                 tok = new Token(TokenType.EOF, ch);
                 break;

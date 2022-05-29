@@ -1,15 +1,22 @@
 package ye.chilyn.monkey.test;
 
 import java.lang.String;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 import ye.chilyn.monkey.Lexer;
 import ye.chilyn.monkey.Parser;
 import ye.chilyn.monkey.Evaluator;
 import ye.chilyn.monkey.ast.Program;
+import ye.chilyn.monkey.object.Array;
 import ye.chilyn.monkey.object.Boolean;
 import ye.chilyn.monkey.object.Environment;
 import ye.chilyn.monkey.object.Error;
 import ye.chilyn.monkey.object.Function;
+import ye.chilyn.monkey.object.Hash;
+import ye.chilyn.monkey.object.HashKey;
+import ye.chilyn.monkey.object.HashPair;
 import ye.chilyn.monkey.object.Integer;
 import ye.chilyn.monkey.object.Object;
 
@@ -54,7 +61,7 @@ public class EvaluatorTest {
     private boolean testIntegerObject(Object obj, long expected) {
         if (!(obj instanceof Integer)) {
             println("object is not Integer. got=" +
-                    (obj == null ? "null" : obj.getClass().getName()));
+                    (obj == null ? "null" : (obj.getClass().getName() + "(" + obj.inspect() + ")")));
             return false;
         }
 
@@ -231,6 +238,7 @@ public class EvaluatorTest {
 
     public void testErrorHandling() {
         ErrorHandlingTest[] tests = {
+                new ErrorHandlingTest("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION"),
 //                new ErrorHandlingTest("foobar", "identifier not found: foobar"),
 //                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
 //                new ErrorHandlingTest("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
@@ -240,7 +248,7 @@ public class EvaluatorTest {
 //                new ErrorHandlingTest("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN"),
 //                new ErrorHandlingTest("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"),
 //                new ErrorHandlingTest("if (10 > 1) { if (10 > 1) { return true + false; }return 1; }", "unknown operator: BOOLEAN + BOOLEAN"),
-                new ErrorHandlingTest("\"Hello\" - \"World\"", "unknown operator: STRING - STRING"),
+//                new ErrorHandlingTest("\"Hello\" - \"World\"", "unknown operator: STRING - STRING"),
         };
 
         for (ErrorHandlingTest tt : tests) {
@@ -404,5 +412,191 @@ public class EvaluatorTest {
         }
 
         println("success");
+    }
+
+    public void testBuiltinFunctions() {
+        BuiltinFunctionsTest[] tests = {
+                new BuiltinFunctionsTest("len(\"\")", 0),
+                new BuiltinFunctionsTest("len(\"four\")", 4),
+                new BuiltinFunctionsTest("len(\"hello world\")", 11),
+                new BuiltinFunctionsTest("len(1)", "argument to `len` not supported, got INTEGER"),
+                new BuiltinFunctionsTest("len(\"one\", \"two\")", "wrong number of arguments. got=2, want=1"),
+        };
+
+        for (BuiltinFunctionsTest tt : tests) {
+            Object evaluated = testEval(tt.input);
+            if (tt.expected instanceof java.lang.Integer) {
+                testIntegerObject(evaluated, (int) tt.expected);
+            } else if (tt.expected instanceof String) {
+                if (!(evaluated instanceof Error)) {
+                    println("object is not Error. got=" + evaluated.type() + "(" + evaluated.inspect() + ")");
+                    continue;
+                }
+
+                Error errObj = (Error) evaluated;
+                if (!tt.expected.equals(errObj.message)) {
+                    println("wrong error message. expected=" + tt.expected + ", got=" + errObj.message);
+                }
+            }
+        }
+
+        println("success");
+    }
+
+    private class BuiltinFunctionsTest {
+        String input;
+        java.lang.Object expected;
+
+        public BuiltinFunctionsTest(String input, java.lang.Object expected) {
+            this.input = input;
+            this.expected = expected;
+        }
+    }
+
+    public void testArrayLiterals() {
+        String input = "[1, 2 * 2, 3 + 3]";
+        Object evaluated = testEval(input);
+        if (!(evaluated instanceof Array)) {
+            if (evaluated == null) {
+                println("object is not Array. got=null");
+                return;
+            }
+
+            println("object is not Array. got=" + evaluated.type() + evaluated.inspect());
+            return;
+        }
+
+        Array result = (Array) evaluated;
+        if (result.elements.size() != 3) {
+            println("array has wrong num of elements. got=" + result.elements.size());
+            return;
+        }
+
+        testIntegerObject(result.elements.get(0), 1);
+        testIntegerObject(result.elements.get(1), 4);
+        testIntegerObject(result.elements.get(2), 6);
+        println("success");
+    }
+
+    public void testArrayIndexExpressions() {
+        ArrayIndexExpressionsTest[] tests = {
+                new ArrayIndexExpressionsTest("[1, 2, 3][0]", 1),
+                new ArrayIndexExpressionsTest("[1, 2, 3][1]", 2),
+                new ArrayIndexExpressionsTest("[1, 2, 3][2]", 3),
+                new ArrayIndexExpressionsTest("let i = 0; [1][i];", 1),
+                new ArrayIndexExpressionsTest("[1, 2, 3][1 + 1];", 3),
+                new ArrayIndexExpressionsTest("let myArray = [1, 2, 3]; myArray[2];", 3),
+                new ArrayIndexExpressionsTest("let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];", 6),
+                new ArrayIndexExpressionsTest("let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]", 2),
+                new ArrayIndexExpressionsTest("[1, 2, 3][3]", null),
+                new ArrayIndexExpressionsTest("[1, 2, 3][-1]", null),
+        };
+
+        for (ArrayIndexExpressionsTest tt : tests) {
+            Object evaluated = testEval(tt.input);
+            if (tt.expected instanceof java.lang.Integer) {
+                testIntegerObject(evaluated, (int) tt.expected);
+            } else {
+                testNullObject(evaluated);
+            }
+        }
+
+        println("success");
+    }
+
+    private class ArrayIndexExpressionsTest {
+        String input;
+        java.lang.Object expected;
+
+        public ArrayIndexExpressionsTest(String input, java.lang.Object expected) {
+            this.input = input;
+            this.expected = expected;
+        }
+    }
+
+    public void testHashLiterals() {
+        String input = "let two = \"two\"; " +
+                "{ " +
+                    "\"one\": 10 - 9," +
+                    " two: 1 + 1, " +
+                    "\"thr\" + \"ee\": 6 / 2," +
+                    " 4: 4," +
+                    " true: 5, " +
+                    "false: 6 " +
+                "}";
+
+        Object evaluated = testEval(input);
+        if (!(evaluated instanceof Hash)) {
+            if (evaluated == null) {
+                println("Eval didn't return Hash. got=null");
+                return;
+            }
+
+            println("Eval didn't return Hash. got=" + evaluated.type()  + "(" + evaluated.inspect() + ")");
+            return;
+        }
+
+        Map<HashKey, Long> expected = new HashMap<HashKey, Long>(){{
+            put(new ye.chilyn.monkey.object.String("one").hashKey(), 1L);
+            put(new ye.chilyn.monkey.object.String("two").hashKey(), 2L);
+            put(new ye.chilyn.monkey.object.String("three").hashKey(), 3L);
+            put(new Integer(4).hashKey(), 4L);
+            put(Evaluator.TRUE.hashKey(), 5L);
+            put(Evaluator.FALSE.hashKey(), 6L);
+        }};
+
+        final Hash result = (Hash) evaluated;
+        if (result.pairs.size() != expected.size()) {
+            println("Hash has wrong num of pairs. got=" + result.pairs.size());
+            return;
+        }
+
+        expected.forEach(new BiConsumer<HashKey, Long>() {
+            @Override
+            public void accept(HashKey expectedKey, Long expectedValue) {
+                HashPair pair = result.pairs.get(expectedKey);
+                if (pair == null) {
+                    println("no pair for given key in Pairs");
+                    return;
+                }
+
+                testIntegerObject(pair.value, expectedValue);
+            }
+        });
+
+        println("success");
+    }
+
+    public void testHashIndexExpressions() {
+        HashIndexExpressionsTest[] tests = {
+                new HashIndexExpressionsTest("{\"foo\": 5}[\"foo\"]", 5),
+                new HashIndexExpressionsTest("{\"foo\": 5}[\"bar\"]", null),
+                new HashIndexExpressionsTest("let key = \"foo\"; {\"foo\": 5}[key]", 5),
+                new HashIndexExpressionsTest("{}[\"foo\"]", null),
+                new HashIndexExpressionsTest("{5: 5}[5]", 5),
+                new HashIndexExpressionsTest("{true: 5}[true]", 5),
+                new HashIndexExpressionsTest("{false: 5}[false]", 5),
+        };
+
+        for (HashIndexExpressionsTest tt : tests) {
+            Object evaluated = testEval(tt.input);
+            if (tt.expected instanceof java.lang.Integer) {
+                testIntegerObject(evaluated, (int) tt.expected);
+            } else {
+                testNullObject(evaluated);
+            }
+        }
+
+        println("success");
+    }
+
+    private class HashIndexExpressionsTest {
+        String input;
+        java.lang.Object expected;
+
+        public HashIndexExpressionsTest(String input, java.lang.Object expected) {
+            this.input = input;
+            this.expected = expected;
+        }
     }
 }
